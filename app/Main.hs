@@ -1,19 +1,29 @@
-{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
-import           Test.Tasty
-import           Test.Tasty.HUnit
-import Test.BDD.Language
+import Control.Concurrent
+import Test.Tasty
+import Test.Tasty.Bdd
 
+t1' = (
+      Given (print "Given 1")
+    . Given (print "Given 2")
+    . GivenAndAfter (print "Given before After 3" >> return "After After 3") (print)
+    . GivenAndAfter (print "Given before After 4" >> return "After After 4") (print)
+    . When (print "when ptek" >> return ([1..5]++[500..506]) :: IO [Int])
+    . Then (@?= ([1..5]++[600..606]))
+    . Then (\r -> length r @?= 4)
+    . Then (\_ -> print "Then 5")
+    )
 
+t2 :: TestTree
+t2 = testBdd "name is Paolino" (
+      GivenAndAfter (print "G 01") (const (threadDelay 1000000 >> print "A 01"))
+    . When (print "when Paolino" >> return "Paolino" :: IO String)
+    )
 
-t1 :: BDD IO String 
-t1  = Given  (return ())
-    $ GivenAndAfter (return ()) (return ())
-    $ When "test ptek is THE name" (return "ptek")
-    $ Then "name is correct" (@?= "ptek")
-    $ Then "name is 4 char long" (\z -> length z @?= 5)
-    $ End
+t1 = testBdd "name is ptek" t1'
 
-
-main = defaultMain $ testTreeBDD t1
+main = do
+  defaultMain $ testGroup "All the tests" [t1, t2]
 

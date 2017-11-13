@@ -1,4 +1,4 @@
-name:               bdd
+name:               tasty-bdd
 version:            0.1.0.0
 synopsis: bdd tests language and tasty provider
 -- description:
@@ -15,33 +15,27 @@ cabal-version:      >=1.10
 
 library
     hs-source-dirs:   src
-    exposed-modules:  Test.BDD.Language
-    build-depends:    
-          base >= 4.7 && <5
-        , microlens
-        , free
-        , tasty
-        , tasty-hunit
-        , mtl
-        , microlens-th
-        , HUnit
-        , tagged
+    exposed-modules:  Test.Tasty.Bdd
+                    , Test.BDD.Language
+    ghc-options:      -Wall
+    build-depends:    base >= 4.7 && <5
+                    , microlens
+                    , free
+                    , tasty
+                    , tasty-hunit
+                    , mtl
+                    , microlens-th
+                    , HUnit
+                    , tagged
+                    , pretty-show
     default-language: Haskell2010
 
 executable bdd-exe
     hs-source-dirs:   app
     main-is:          Main.hs
-    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
-    build-depends:    base, bdd, tasty 
+    ghc-options:      -Wall
+    build-depends:    base, tasty-bdd, tasty
         , tasty-hunit
-    default-language: Haskell2010
-
-test-suite bdd-test
-    type:             exitcode-stdio-1.0
-    hs-source-dirs:   ./.
-    main-is:          Test.hs
-    build-depends:    base >= 4.7 && < 5, tasty
-    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
 
 source-repository head

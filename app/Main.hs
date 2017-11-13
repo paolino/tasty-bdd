@@ -4,6 +4,8 @@
 import Control.Concurrent
 import Test.Tasty
 import Test.Tasty.Bdd
+import Test.Tasty.Ingredients.FailFast
+import Test.Tasty.Ingredients.Basic
 
 t1' = (
       Given (print "Given 1")
@@ -25,5 +27,7 @@ t2 = testBdd "name is Paolino" (
 t1 = testBdd "name is ptek" t1'
 
 main = do
-  defaultMain $ testGroup "All the tests" [t1, t2]
+  defaultMainWithIngredients ingredients $ testGroup "All the tests" [t1, t2]
+
+ingredients = [listingTests, failFast $ consoleTestReporter]
 

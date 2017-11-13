@@ -20,10 +20,13 @@ import Test.BDD.Language
 import Test.Tasty.Providers
 import Text.Printf
 import Text.Show.Pretty
+import Test.Tasty.Options
+import Test.Tasty.Ingredients.FailFast
+import Data.Proxy
 
 instance Typeable t => IsTest (BDDTest IO t Result) where
-    run _ (BDDTest ts rup w) f = do
-            teardowns <- mapM (\(GivenWithTeardown g a) -> g >>= return . a) rup
+    run os (BDDTest ts rup w) f = do
+            teardowns <- sequence_ <$> reverse <$> mapM (\(GivenWithTeardown g a) -> g >>= return . a) rup
             resultOfWhen <- w
             let loop [] = return Nothing
                 loop (then':xs) =  do
@@ -37,9 +40,13 @@ instance Typeable t => IsTest (BDDTest IO t Result) where
                                  return (Just (show e)))
             resultOfThen <- loop ts
             case resultOfThen of
-              Just reason -> return (testFailed reason)
-              Nothing -> sequence (reverse teardowns) >> return (testPassed "")
-    testOptions = Tagged []
+              Just reason -> do
+                    case lookupOption os of
+                            FailFast False -> teardowns
+                            _ -> return ()
+                    return $ testFailed reason
+              Nothing -> teardowns >> return (testPassed "")
+    testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
 
 prettyDifferences :: (Show a) => a -> a -> String
 prettyDifferences a1 a2 =

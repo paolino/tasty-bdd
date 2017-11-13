@@ -13,16 +13,19 @@ module Test.Tasty.Bdd (
   ) where
 
 import Control.Arrow                   ((***))
-import Control.Monad.Catch
-import Control.Monad.IO.Class
-import Data.Tagged
-import Data.Typeable
+import Control.Monad.Catch             (Exception(..), MonadCatch(..),
+                                        MonadThrow(..))
+import Control.Monad.IO.Class          (MonadIO, liftIO)
+import Data.Tagged                     (Tagged(..))
+import Data.Typeable                   (Proxy(..), Typeable)
 import Test.BDD.Language
-import Test.Tasty.Ingredients.FailFast
-import Test.Tasty.Options
-import Test.Tasty.Providers
-import Text.Printf
-import Text.Show.Pretty
+import Test.Tasty.Ingredients.FailFast (FailFast(..))
+import Test.Tasty.Options              (OptionDescription(..), lookupOption)
+import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
+                                        TestTree, singleTest, testFailed,
+                                        testPassed)
+import Text.Printf                     (printf)
+import Text.Show.Pretty                (ppShow)
 
 class TestableMonad m where
     runCase :: m Result -> IO Result

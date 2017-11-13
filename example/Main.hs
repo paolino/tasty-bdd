@@ -1,10 +1,11 @@
 module Main where
 
-import Control.Concurrent (threadDelay)
-import Test.Tasty                      (TestTree, testGroup)
+import Control.Concurrent              (threadDelay)
+import Test.Tasty                      (TestTree, defaultMainWithIngredients,
+                                        testGroup)
 import Test.Tasty.Bdd
 import Test.Tasty.Ingredients          (Ingredient)
-import Test.Tasty.Ingredients.Basic    (consoleTestReporter)
+import Test.Tasty.Ingredients.Basic    (consoleTestReporter, listingTests)
 import Test.Tasty.Ingredients.FailFast (failFast)
 
 t1 :: TestTree

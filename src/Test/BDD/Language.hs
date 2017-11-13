@@ -54,4 +54,4 @@ makeBDD res0 (When fa p)
 
 bddT :: Monad m => r -> Language m t () 'Testing  -> BDDTest m t r
 bddT r (Then ca p) = over tests ((:) ca) $ bddT r p
-bddT _ End         = BDDTest [] [] (return undefined)
+bddT _ End         = BDDTest [] [] (error "End on its own does not make sense as a test")

@@ -14,7 +14,7 @@
 
 ## Background
 
-[Behavior Driven Development](https://en.wikipedia.org/wiki/Behavior-driven_development) is a software development process that emerged from test-driven development (TDD) and is based on principles of [Hoare Logic](https://en.wikipedia.org/wiki/Hoare_logic). The process requires a very strict structure of the tests to make the simple and understandable.
+[Behavior Driven Development](https://en.wikipedia.org/wiki/Behavior-driven_development) is a software development process that emerged from test-driven development (TDD) and is based on principles of [Hoare Logic](https://en.wikipedia.org/wiki/Hoare_logic). The process requires a strict structure of the tests - {Given} When {Then} - to make them understandable.
 
 ## Example
 

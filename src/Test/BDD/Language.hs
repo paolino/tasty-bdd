@@ -6,7 +6,16 @@
 {-# LANGUAGE TemplateHaskell   #-}
 
 
-module Test.BDD.Language where
+module Test.BDD.Language (
+    Language(..)
+    , BDD
+    , BDDTest(..)
+    , GivenWithTeardown(..)
+    , Phase(Testing)
+    , rigup
+    , when
+    , makeBDD
+    ) where
 
 import           Lens.Micro
 import           Lens.Micro.TH
@@ -17,21 +26,24 @@ data GivenWithTeardown m = forall r. GivenWithTeardown (m r) (r -> m ())
 
 data Language m t q a where
 
-    Given   :: m ()
-            -> Language m t q 'Preparing
-            -> Language m t q 'Preparing
+    Given           :: m ()
+                    -> Language m t q 'Preparing
+                    -> Language m t q 'Preparing
+
     GivenAndAfter   :: m r
                     -> (r -> m ())
                     -> Language m t q 'Preparing
                     -> Language m t q 'Preparing
-    When    :: m t
-            -> Language m t q 'Testing
-            -> Language m t q 'Preparing
-    Then   :: (t -> m q)
-           -> Language m t q 'Testing
-           -> Language m t q 'Testing
 
-    End    :: Language m t q 'Testing
+    When            :: m t
+                    -> Language m t q 'Testing
+                    -> Language m t q 'Preparing
+
+    Then            :: (t -> m q)
+                    -> Language m t q 'Testing
+                    -> Language m t q 'Testing
+         
+    End             :: Language m t q 'Testing
 
 data BDDTest m t r = BDDTest
             { _tests :: [t -> m ()]

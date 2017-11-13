@@ -10,6 +10,7 @@
 * One interpreter for IO
 * One driver for Tasty test library
 * Support for --fail-fast flag which will not execute the teardown actions of the failed test
+* A rudimentary form of value introspection to show the differences on equality failure `@?=`
 
 ## Example
 
@@ -19,8 +20,8 @@ t1' = (
     . Given (print "Given 2")
     . GivenAndAfter (print "Given before After 3" >> return "After After 3") (print)
     . GivenAndAfter (print "Given before After 4" >> return "After After 4") (print)
-    . When (print "when ptek" >> return ([1..5]++[500..506]) :: IO [Int])
-    . Then (@?= ([1..5]++[600..606]))
+    . When (print "when ptek" >> return ([1..10]++[500..506]) :: IO [Int])
+    . Then (@?= ([1..10]++[600..606]))
     . Then (\r -> length r @?= 4)
     . Then (\_ -> print "Then 5")
     )

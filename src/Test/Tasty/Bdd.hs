@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE Rank2Types        #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Tasty.Bdd (
     (@?=)
@@ -11,39 +12,43 @@ module Test.Tasty.Bdd (
   , testBdd
   ) where
 
-import Control.Arrow        ((***))
-import Control.Exception
+import Control.Arrow                   ((***))
+import Control.Monad.Catch
+import Control.Monad.IO.Class
 import Data.Tagged
 import Data.Typeable
 import Test.BDD.Language
+import Test.Tasty.Ingredients.FailFast
+import Test.Tasty.Options
 import Test.Tasty.Providers
 import Text.Printf
 import Text.Show.Pretty
-import Test.Tasty.Options
-import Test.Tasty.Ingredients.FailFast
 
-instance Typeable t => IsTest (BDDTest IO t Result) where
-    run os (BDDTest ts rup w) f = do
-            teardowns <- sequence_ . reverse <$> mapM (\(GivenWithTeardown g a) -> a <$> g) rup
-            resultOfWhen <- w
-            let loop [] = return Nothing
-                loop (then':xs) =  do
-                        f (Progress "" (fromIntegral (length xs) / fromIntegral (length ts)))
-                        (then' resultOfWhen >> loop xs)
-                            `catch`
-                            (\(EqualityDoesntHold e) ->
-                                 return (Just e))
-                            `catch`
-                            (\(SomeException e) ->
-                                 return (Just (show e)))
-            resultOfThen <- loop ts
-            case resultOfThen of
-              Just reason -> do
-                    case lookupOption os of
-                            FailFast False -> teardowns
-                            _ -> return ()
-                    return $ testFailed reason
-              Nothing -> teardowns >> return (testPassed "")
+class TestableMonad m where
+    runCase :: m Result -> IO Result
+
+instance TestableMonad IO where
+    runCase = id
+
+instance (Typeable t, TestableMonad m, MonadIO m, MonadCatch m, Typeable m) => IsTest (BDDTest m t Result) where
+    run os (BDDTest ts rup w) f = runCase $ do
+        teardowns <- sequence_ . reverse <$> mapM (\(GivenWithTeardown g a) -> a <$> g) rup
+        resultOfWhen <- w
+        let loop [] = return Nothing
+            loop (then':xs) =  do
+                    liftIO $ f (Progress "" (fromIntegral (length xs) / fromIntegral (length ts)))
+                    (then' resultOfWhen >> loop xs)
+                        `catch`
+                        (\(EqualityDoesntHold e) ->
+                             return (Just e))
+        resultOfThen <- loop ts
+        case resultOfThen of
+            Just reason -> do
+                case lookupOption os of
+                    FailFast False -> teardowns
+                    _              -> return ()
+                return $ testFailed reason
+            Nothing -> teardowns >> return (testPassed "")
     testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
 
 prettyDifferences :: (Show a) => a -> a -> String
@@ -57,15 +62,16 @@ newtype EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
 
 instance Exception EqualityDoesntHold
 
-(@?=) :: (Show a, Eq a, Typeable a) => a -> a -> IO ()
+infixl 4 @?=
+(@?=) :: (Show a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
 a1 @?= a2 =
-  if a1 == a2
-  then return ()
-  else throwIO (EqualityDoesntHold (prettyDifferences a1 a2))
+    if a1 == a2
+    then return ()
+    else throwM (EqualityDoesntHold (prettyDifferences a1 a2))
 
 testBdd ::
-  (Monad m, IsTest (BDDTest m t Result))
-  => String
-  -> (Language m t () 'Testing -> BDD m t)
-  -> TestTree
+    (Monad m, IsTest (BDDTest m t Result))
+    => String
+    -> (Language m t () 'Testing -> BDD m t)
+    -> TestTree
 testBdd s = singleTest s . makeBDD (testPassed "No test run") . ($ End)

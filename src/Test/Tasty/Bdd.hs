@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE TemplateHaskell   #-}
 
 module Test.Tasty.Bdd (
     (@?=)
@@ -22,11 +21,10 @@ import Text.Printf
 import Text.Show.Pretty
 import Test.Tasty.Options
 import Test.Tasty.Ingredients.FailFast
-import Data.Proxy
 
 instance Typeable t => IsTest (BDDTest IO t Result) where
     run os (BDDTest ts rup w) f = do
-            teardowns <- sequence_ <$> reverse <$> mapM (\(GivenWithTeardown g a) -> g >>= return . a) rup
+            teardowns <- sequence_ . reverse <$> mapM (\(GivenWithTeardown g a) -> a <$> g) rup
             resultOfWhen <- w
             let loop [] = return Nothing
                 loop (then':xs) =  do
@@ -55,7 +53,7 @@ prettyDifferences a1 a2 =
       (equals, (diff1, diff2)) = (map fst *** unzip) . break (uncurry (/=)) $ zip pa1 pa2
   in printf "== MATCHING ==\n%s== LEFT ==\n%s== RIGHT==\n%s\n" (unlines equals) (unlines diff1) (unlines diff2)
 
-data EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
+newtype EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
 
 instance Exception EqualityDoesntHold
 
@@ -63,7 +61,7 @@ instance Exception EqualityDoesntHold
 a1 @?= a2 =
   if a1 == a2
   then return ()
-  else (throwIO (EqualityDoesntHold (prettyDifferences a1 a2)))
+  else throwIO (EqualityDoesntHold (prettyDifferences a1 a2))
 
 testBdd ::
   (Monad m, IsTest (BDDTest m t Result))

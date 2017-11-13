@@ -1,6 +1,6 @@
 # Behavior-driven development 
 
-## A BDD framework with:
+## A Behavior Driven Development framework with:
 
 * A type constrained language to express
   *  *Given* as ordered preconditions or
@@ -12,17 +12,22 @@
 * Support for --fail-fast flag which will not execute the teardown actions of the failed test
 * A rudimentary form of value introspection to show the differences on equality failure `@?=`
 
+## Background
+
+[Behavior Driven Development](https://en.wikipedia.org/wiki/Behavior-driven_development) is a software development process that emerged from test-driven development (TDD) and is based on principles of [Hoare Logic](https://en.wikipedia.org/wiki/Hoare_logic). The process requires a very strict structure of the tests to make the simple and understandable.
+
 ## Example
 
 ```
-t1' = (
-      Given (print "Given 1")
-    . Given (print "Given 2")
-    . GivenAndAfter (print "Given before After 3" >> return "After After 3") (print)
-    . GivenAndAfter (print "Given before After 4" >> return "After After 4") (print)
-    . When (print "when ptek" >> return ([1..10]++[500..506]) :: IO [Int])
-    . Then (@?= ([1..10]++[600..606]))
-    . Then (\r -> length r @?= 4)
-    . Then (\_ -> print "Then 5")
+t1 :: TestTree
+t1 = testBdd "Test sequence" (
+      Given (print "Some effect")
+    . Given (print "Another effect")
+    . GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
+                    (print . ("Release "++))
+    . GivenAndAfter (print "Aquiring resource" >> return "Resource 2")
+                    (print . ("Release "++))
+    . When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
+    . Then (@?= ([1..10]++[700..706]))
     )
 ```

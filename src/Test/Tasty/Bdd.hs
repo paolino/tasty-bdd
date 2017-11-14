@@ -26,6 +26,8 @@ import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
                                         testPassed)
 import Text.Printf                     (printf)
 import Text.Show.Pretty                (ppShow)
+import Text.PrettyPrint                (render)
+import Data.TreeDiff
 
 class TestableMonad m where
     runCase :: m Result -> IO Result
@@ -54,19 +56,16 @@ instance (Typeable t, TestableMonad m, MonadIO m, MonadCatch m, Typeable m) => I
             Nothing -> teardowns >> return (testPassed "")
     testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
 
-prettyDifferences :: (Show a) => a -> a -> String
+prettyDifferences :: (ToExpr a) => a -> a -> String
 prettyDifferences a1 a2 =
-  let pa1 = lines $ ppShow a1
-      pa2 = lines $ ppShow a2
-      (equals, (diff1, diff2)) = (map fst *** unzip) . break (uncurry (/=)) $ zip pa1 pa2
-  in printf "== MATCHING ==\n%s== LEFT ==\n%s== RIGHT==\n%s\n" (unlines equals) (unlines diff1) (unlines diff2)
+  show $ ansiWlEditExpr $ exprDiff (toExpr a1) (toExpr a2) 
 
 newtype EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
 
 instance Exception EqualityDoesntHold
 
 infixl 4 @?=
-(@?=) :: (Show a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
+(@?=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
 a1 @?= a2 =
     if a1 == a2
     then return ()

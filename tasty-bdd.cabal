@@ -31,6 +31,7 @@ library
                     , tasty-fail-fast
                     , tasty-hunit
                     , transformers
+                    , tree-diff
     default-language: Haskell2010
 
 executable example

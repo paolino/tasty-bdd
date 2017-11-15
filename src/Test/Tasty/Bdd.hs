@@ -10,24 +10,31 @@ module Test.Tasty.Bdd (
   , Language (..)
   , BDD
   , testBdd
+  , given_
+  , givenAndAfter_
+  , hoare
+  , then_
   ) where
 
-import Control.Arrow                   ((***))
-import Control.Monad.Catch             (Exception(..), MonadCatch(..),
-                                        MonadThrow(..))
-import Control.Monad.IO.Class          (MonadIO, liftIO)
-import Data.Tagged                     (Tagged(..))
-import Data.Typeable                   (Proxy(..), Typeable)
-import Test.BDD.Language
-import Test.Tasty.Ingredients.FailFast (FailFast(..))
-import Test.Tasty.Options              (OptionDescription(..), lookupOption)
-import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
-                                        TestTree, singleTest, testFailed,
-                                        testPassed)
-import Text.Printf                     (printf)
-import Text.Show.Pretty                (ppShow)
-import Text.PrettyPrint                (render)
-import Data.TreeDiff
+import           Control.Arrow                   ((***))
+import           Control.Monad.Catch             (Exception (..),
+                                                  MonadCatch (..),
+                                                  MonadThrow (..))
+import           Control.Monad.IO.Class          (MonadIO, liftIO)
+import           Data.Tagged                     (Tagged (..))
+import           Data.TreeDiff
+import           Data.Typeable                   (Proxy (..), Typeable)
+import           Test.BDD.Language
+import           Test.BDD.LanguageFree
+import           Test.Tasty.Ingredients.FailFast (FailFast (..))
+import           Test.Tasty.Options              (OptionDescription (..),
+                                                  lookupOption)
+import           Test.Tasty.Providers            (IsTest (..), Progress (..),
+                                                  Result, TestTree, singleTest,
+                                                  testFailed, testPassed)
+import           Text.PrettyPrint                (render)
+import           Text.Printf                     (printf)
+import           Text.Show.Pretty                (ppShow)
 
 class TestableMonad m where
     runCase :: m Result -> IO Result
@@ -58,7 +65,7 @@ instance (Typeable t, TestableMonad m, MonadIO m, MonadCatch m, Typeable m) => I
 
 prettyDifferences :: (ToExpr a) => a -> a -> String
 prettyDifferences a1 a2 =
-  show $ ansiWlEditExpr $ exprDiff (toExpr a1) (toExpr a2) 
+  show $ ansiWlEditExpr $ exprDiff (toExpr a1) (toExpr a2)
 
 newtype EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
 
@@ -74,6 +81,7 @@ a1 @?= a2 =
 testBdd ::
     (Monad m, IsTest (BDDTest m t Result))
     => String
-    -> (Language m t () 'Testing -> BDD m t)
+    -> (Language m t q 'Testing -> BDD m t)
     -> TestTree
-testBdd s = singleTest s . makeBDD (testPassed "No test run") . ($ End)
+testBdd s = singleTest s . makeBDD (testPassed "No test run") . ($End)
+

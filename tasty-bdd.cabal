@@ -17,6 +17,7 @@ library
     hs-source-dirs:   src
     exposed-modules:  Test.Tasty.Bdd
                     , Test.BDD.Language
+                    , Test.BDD.LanguageFree
     ghc-options:      -Wall
     build-depends:    base >= 4.7 && <5
                     , exceptions

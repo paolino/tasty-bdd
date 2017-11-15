@@ -1,9 +1,10 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE TemplateHaskell           #-}
 
 
 module Test.BDD.Language (
@@ -11,10 +12,10 @@ module Test.BDD.Language (
     , BDD
     , BDDTest(..)
     , GivenWithTeardown(..)
-    , Phase(Testing)
     , rigup
     , when
     , makeBDD
+    , Phase (..)
     ) where
 
 import           Lens.Micro
@@ -42,13 +43,13 @@ data Language m t q a where
     Then            :: (t -> m q)
                     -> Language m t q 'Testing
                     -> Language m t q 'Testing
-         
+
     End             :: Language m t q 'Testing
 
 data BDDTest m t r = BDDTest
             { _tests :: [t -> m ()]
-            , _rigup  :: [GivenWithTeardown m]
-            , _when   :: m t
+            , _rigup :: [GivenWithTeardown m]
+            , _when  :: m t
             }
 
 makeLenses ''BDDTest

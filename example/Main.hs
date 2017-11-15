@@ -1,16 +1,17 @@
-{-# language QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
-import Control.Concurrent              (threadDelay)
-import Test.Tasty                      (TestTree, defaultMainWithIngredients,
-                                        testGroup)
-import Test.Tasty.Bdd
-import Test.Tasty.Ingredients          (Ingredient)
-import Test.Tasty.Ingredients.Basic    (consoleTestReporter, listingTests)
-import Test.Tasty.Ingredients.FailFast (failFast)
-import Data.Aeson
-import Data.Aeson.QQ
-
+import           Control.Concurrent              (threadDelay)
+import           Data.Aeson
+import           Data.Aeson.QQ
+import           Test.Tasty                      (TestTree,
+                                                  defaultMainWithIngredients,
+                                                  testGroup)
+import           Test.Tasty.Bdd
+import           Test.Tasty.Ingredients          (Ingredient)
+import           Test.Tasty.Ingredients.Basic    (consoleTestReporter,
+                                                  listingTests)
+import           Test.Tasty.Ingredients.FailFast (failFast)
 t1 :: TestTree
 t1 = testBdd "Test sequence" $
       Given (putStrLn "\nFirst effect")
@@ -21,6 +22,20 @@ t1 = testBdd "Test sequence" $
                     (putStrLn . ("Release "++))
     . When (putStrLn "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
     . Then (@?= ([1..10]++[700..706]))
+
+t1' :: TestTree
+t1' = testBdd "Test sequence" $ hoare gs w ts
+    where
+    gs = do
+        given_ $ putStrLn "\nFirst effect"
+        given_ $ putStrLn "Another effect"
+        givenAndAfter_
+                    (putStrLn "Aquiring resource" >> return "Resource 1")
+                   $ putStrLn . ("Release "++)
+        givenAndAfter_ (putStrLn "Aquiring resource" >> return "Resource 2")
+                   $ putStrLn . ("Release "++)
+    ts = then_ (@?= ([1..10]++[700..706]))
+    w = putStrLn "Action returning" >> return ([1..10]++[100..106::Int])
 
 t2 :: TestTree
 t2 = testBdd "Exceedingly long running test" $
@@ -33,12 +48,12 @@ t2 = testBdd "Exceedingly long running test" $
 val :: Value
 val = object [
       "boolean" .= True,
-        "numbers" .= [1,2,3::Int] ] 
+        "numbers" .= [1,2,3::Int] ]
 
 val2 :: Value
 val2 = object [
       "boolean" .= True,
-        "numbers" .= [1,4,3::Int] ] 
+        "numbers" .= [1,4,3::Int] ]
 
 t3 :: TestTree
 t3 = testBdd "json small" $
@@ -93,8 +108,8 @@ t4 = testBdd "json big value" $
     . Then (\w -> w @?= valbig2)
 
 main :: IO ()
-main = defaultMainWithIngredients ingredients 
-    $ testGroup "All the tests" [t1, t2,t3,t4]
+main = defaultMainWithIngredients ingredients
+    $ testGroup "All the tests" [t1,t1', t2,t3,t4]
 
 ingredients :: [Ingredient]
 ingredients = [listingTests, failFast consoleTestReporter]

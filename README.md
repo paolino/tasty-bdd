@@ -1,6 +1,6 @@
 # Behavior-driven development 
 
-## A Behavior Driven Development framework with:
+## A [Haskell](https://www.haskell.org/) Behavior Driven Development framework featuring:
 
 * A type constrained language to express
   *  *Given* as ordered preconditions or
@@ -8,9 +8,9 @@
   *  One only *When* to introduce a last precondition and catch it's output to be fed to
   *  Some *Then* tests that will receive the output of *When*
 * Support for do notation via free monad for composing _givens_ and _thens_ 
-* One pure interpreter for any monad
-* One driver for amazing [tasty](https://github.com/feuerbach/tasty) test library,  monad parametrized
-* Support for tasty --fail-fast flag which will not execute the teardown actions of the failed test
+* One monad independent pure interpreter
+* One driver for the great [tasty](https://github.com/feuerbach/tasty) test library,  monad parametrized
+* Support for [tasty-fail-fast](https://hackage.haskell.org/package/tasty-fail-fast) strategy flag which will not execute the teardown actions of the failed test
 * A sophisticated form of value introspection to show the differences on equality failure from [tree-diff](https://github.com/phadej/tree-diffdifftree) package 
 
 ## Background

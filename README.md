@@ -4,13 +4,14 @@
 
 * A type constrained language to express
   *  *Given* as ordered preconditions or
-  *  *GivenAndAfter* as oredered preconditions with reversed order of teardown actions
+  *  *GivenAndAfter* as oredered preconditions with reversed order of teardown actions (sort of resource management)
   *  One only *When* to introduce a last precondition and catch it's output to be fed to
-  *  Some *Then* tests that will receive the output of *When* 
-* One interpreter for IO
-* One driver for Tasty test library
-* Support for --fail-fast flag which will not execute the teardown actions of the failed test
-* A rudimentary form of value introspection to show the differences on equality failure `@?=`
+  *  Some *Then* tests that will receive the output of *When*
+* Support for do notation via free monad for composing _givens_ and _thens_ 
+* One pure interpreter for any monad
+* One driver for amazing [tasty] (https://github.com/feuerbach/tasty) test library,  monad parametrized
+* Support for tasty --fail-fast flag which will not execute the teardown actions of the failed test
+* A sophisticated form of value introspection to show the differences on equality failure from [tree-diff](https://github.com/phadej/tree-diffdifftree) package 
 
 ## Background
 
@@ -18,9 +19,11 @@
 
 ## Example
 
+### Using bare language
+
 ```
-t1 :: TestTree
-t1 = testBdd "Test sequence" (
+exampleL :: TestTree
+exampleL = testBdd "Test sequence" $
       Given (print "Some effect")
     . Given (print "Another effect")
     . GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
@@ -29,5 +32,24 @@ t1 = testBdd "Test sequence" (
                     (print . ("Release "++))
     . When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
     . Then (@?= ([1..10]++[700..706]))
-    )
+    
 ```
+
+### Using free monads
+
+```
+exampleF :: TestTree
+exampleF = testBdd "Test sequence" $ hoare g w t
+    where
+    g = do
+          given_ $ print "Some effect"
+          given_ $ print "Another effect"
+          givenAndAfter_ (print "Aquiring resource" >> return "Resource 1")
+                    $ print . ("Release "++)
+          givenAndAfter_ (print "Aquiring resource" >> return "Resource 2")
+                    $ print . ("Release "++)
+    w =  when_ $ print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int]
+    t = then_ (@?= ([1..10]++[700..706])
+    
+```
+

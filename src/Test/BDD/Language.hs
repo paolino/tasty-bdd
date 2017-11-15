@@ -3,68 +3,90 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE Rank2Types                #-}
 {-# LANGUAGE TemplateHaskell           #-}
 
 
 module Test.BDD.Language (
     Language(..)
-    , BDD
+    , BDDPreparing
+    , BDDTesting
     , BDDTest(..)
-    , GivenWithTeardown(..)
-    , rigup
+    , TestContext(..)
+    , context
+    , tests
     , when
-    , makeBDD
+    , Interpret (..)
     , Phase (..)
     ) where
 
 import           Lens.Micro
 import           Lens.Micro.TH
 
+-- | Separating the 2 phases by type
 data Phase = Preparing | Testing
 
-data GivenWithTeardown m = forall r. GivenWithTeardown (m r) (r -> m ())
+-- | Recording given actions and type related teardowns
+data TestContext m = forall r. TestContext (m r) (r -> m ())
 
+-- | Bare hoare language
 data Language m t q a where
-
+    -- ^ action to prepare the test
     Given           :: m ()
                     -> Language m t q 'Preparing
                     -> Language m t q 'Preparing
 
+    -- ^ action to prepare the test, and related teardown action
     GivenAndAfter   :: m r
                     -> (r -> m ())
                     -> Language m t q 'Preparing
                     -> Language m t q 'Preparing
 
+    -- ^ core logic of the test (last preparing action)
     When            :: m t
                     -> Language m t q 'Testing
                     -> Language m t q 'Preparing
 
+    -- ^ action producing a test
     Then            :: (t -> m q)
                     -> Language m t q 'Testing
                     -> Language m t q 'Testing
 
+    -- ^ final placeholder
     End             :: Language m t q 'Testing
 
-data BDDTest m t r = BDDTest
-            { _tests :: [t -> m ()]
-            , _rigup :: [GivenWithTeardown m]
-            , _when  :: m t
+
+-- | Result of this module interpreter
+data BDDTest m t q = BDDTest
+            { _tests   :: [t -> m q] -- ^ tests from 't'
+            , _context :: [TestContext m] -- ^ test context
+            , _when    :: m t -- ^ when action to compute 't'
             }
 
 makeLenses ''BDDTest
 
-type BDD m t = Language m t () 'Preparing
+-- | Preparing language types
+type BDDPreparing m t q = Language m t q 'Preparing
 
-makeBDD :: Monad m => r -> BDD m t -> BDDTest m t r
-makeBDD res0 (Given fa p)
-        =  makeBDD res0 $ GivenAndAfter fa (const $ return ()) p
-makeBDD res0 (GivenAndAfter given after p)
-        = over rigup (\oldRig -> GivenWithTeardown given after : oldRig)
-        $ makeBDD res0 p
-makeBDD res0 (When fa p)
-        = set when fa $ bddT res0 p
+-- | Testing language types
+type BDDTesting m t q = Language m t q 'Testing
 
-bddT :: Monad m => r -> Language m t () 'Testing  -> BDDTest m t r
-bddT r (Then ca p) = over tests ((:) ca) $ bddT r p
-bddT _ End         = BDDTest [] [] (error "End on its own does not make sense as a test")
+-- | An interpreter collecting the actions
+class Interpret m t q a where
+    interpret :: Monad m => Language m t q a -> BDDTest m t q
+
+instance Interpret m t q Preparing where
+    interpret  (Given given p)
+            =  interpret $ GivenAndAfter given (const $ return ()) p
+    interpret (GivenAndAfter given after p)
+            = over context ((:) $ TestContext given after)
+            $ interpret p
+    interpret (When fa p)
+            = set when fa $ interpret p
+
+
+instance Interpret m t q Testing where
+    interpret (Then ca p) = over tests ((:) ca) $ interpret p
+    interpret End         = BDDTest [] []
+        $ error "End on its own does not make sense as a test"

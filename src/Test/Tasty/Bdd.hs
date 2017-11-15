@@ -8,7 +8,6 @@
 module Test.Tasty.Bdd (
     (@?=)
   , Language (..)
-  , BDD
   , testBdd
   , given_
   , givenAndAfter_
@@ -36,15 +35,16 @@ import           Text.PrettyPrint                (render)
 import           Text.Printf                     (printf)
 import           Text.Show.Pretty                (ppShow)
 
-class TestableMonad m where
+class (MonadCatch m, MonadIO m, Monad m, Typeable m) => TestableMonad m where
     runCase :: m Result -> IO Result
 
 instance TestableMonad IO where
     runCase = id
 
-instance (Typeable t, TestableMonad m, MonadIO m, MonadCatch m, Typeable m) => IsTest (BDDTest m t Result) where
+instance (Typeable t, TestableMonad m)
+        => IsTest (BDDTest m t ()) where
     run os (BDDTest ts rup w) f = runCase $ do
-        teardowns <- sequence_ . reverse <$> mapM (\(GivenWithTeardown g a) -> a <$> g) rup
+        teardowns <- sequence_ . reverse <$> mapM (\(TestContext g a) -> a <$> g) rup
         resultOfWhen <- w
         let loop [] = return Nothing
             loop (then':xs) =  do
@@ -79,9 +79,9 @@ a1 @?= a2 =
     else throwM (EqualityDoesntHold (prettyDifferences a1 a2))
 
 testBdd ::
-    (Monad m, IsTest (BDDTest m t Result))
+    (MonadIO m , TestableMonad m, Typeable t)
     => String
-    -> (Language m t q 'Testing -> BDD m t)
+    -> (BDDTesting m t () -> BDDPreparing m t ())
     -> TestTree
-testBdd s = singleTest s . makeBDD (testPassed "No test run") . ($End)
+testBdd s = singleTest s . interpret  . ($End)
 

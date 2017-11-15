@@ -16,8 +16,8 @@ module Test.BDD.LanguageFree (
     ) where
 
 import           Control.Monad.Free
-import           Test.BDD.Language
-
+import           Test.BDD.Language  (BDDPreparing, BDDTesting,
+                                     Language (Given, GivenAndAfter, Then, When))
 data GivenFree m a where
     GivenFree :: m () -> a -> GivenFree m a
     GivenAndAfterFree :: m r -> (r -> m ()) -> a -> GivenFree m a
@@ -51,8 +51,8 @@ thens (Pure _)              = id
 hoare :: Free (GivenFree m) a
          -> m t
          -> Free (ThenFree m t q) a
-         -> Language m t q Testing
-         -> Language m t q Preparing
+         -> BDDTesting m t q
+         -> BDDPreparing m t q
 hoare g at t = givens g . When at . thens t
 
 {-

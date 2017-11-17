@@ -13,11 +13,12 @@ module Test.BDD.LanguageFree (
         , then_
         , GivenFree
         , ThenFree
+        , BddFree
     ) where
 
-import           Control.Monad.Free
-import           Test.BDD.Language  (BDDPreparing, BDDTesting,
-                                     Language (Given, GivenAndAfter, Then, When))
+import Control.Monad.Free
+import Test.BDD.Language  (BDDPreparing, BDDTesting,
+                           Language(Given, GivenAndAfter, Then, When))
 data GivenFree m a where
     GivenFree :: m () -> a -> GivenFree m a
     GivenAndAfterFree :: m r -> (r -> m ()) -> a -> GivenFree m a
@@ -32,7 +33,9 @@ given_ m = liftF $ GivenFree m ()
 givenAndAfter_ :: m r -> (r -> m ()) -> Free (GivenFree m) ()
 givenAndAfter_ g td = liftF $ GivenAndAfterFree g td ()
 
+type BddFree m = Free (GivenFree m)
 
+givens :: Free (GivenFree m) a -> BDDPreparing m t q  -> BDDPreparing m t q
 givens (Free (GivenFree m f))             = Given m . givens f
 givens (Free (GivenAndAfterFree mr rm f)) = GivenAndAfter mr rm . givens f
 givens (Pure _)                           = id
@@ -44,10 +47,12 @@ data ThenFree m t q a
 then_ :: (t -> m q) -> Free (ThenFree m t q) ()
 then_ m = liftF $ ThenFree m ()
 
+-- then_ set digestor
+thens :: Free (ThenFree m t q) a -> BDDTesting m t q -> BDDTesting m t q
 thens (Free (ThenFree m f)) = Then m . thens f
 thens (Pure _)              = id
 
-
+-- | the when action in disguise
 hoare :: Free (GivenFree m) a
          -> m t
          -> Free (ThenFree m t q) a

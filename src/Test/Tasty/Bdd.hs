@@ -7,33 +7,33 @@
 
 module Test.Tasty.Bdd (
     (@?=)
-  , Language (..)
-  , testBdd
-  , given_
-  , givenAndAfter_
-  , hoare
-  , then_
-  ) where
+    , Language (..)
+    , testBdd
+    , BddFree
+    , given_
+    , TestableMonad (..)
+    , givenAndAfter_
+    , hoare
+    , then_
+) where
 
-import           Control.Arrow                   ((***))
-import           Control.Monad.Catch             (Exception (..),
-                                                  MonadCatch (..),
-                                                  MonadThrow (..))
-import           Control.Monad.IO.Class          (MonadIO, liftIO)
-import           Data.Tagged                     (Tagged (..))
-import           Data.TreeDiff
-import           Data.Typeable                   (Proxy (..), Typeable)
-import           Test.BDD.Language
-import           Test.BDD.LanguageFree
-import           Test.Tasty.Ingredients.FailFast (FailFast (..))
-import           Test.Tasty.Options              (OptionDescription (..),
-                                                  lookupOption)
-import           Test.Tasty.Providers            (IsTest (..), Progress (..),
-                                                  Result, TestTree, singleTest,
-                                                  testFailed, testPassed)
-import           Text.PrettyPrint                (render)
-import           Text.Printf                     (printf)
-import           Text.Show.Pretty                (ppShow)
+import Control.Arrow                   ((***))
+import Control.Monad.Catch             (Exception(..), MonadCatch(..),
+                                        MonadThrow(..))
+import Control.Monad.IO.Class          (MonadIO, liftIO)
+import Data.Tagged                     (Tagged(..))
+import Data.TreeDiff
+import Data.Typeable                   (Proxy(..), Typeable)
+import Test.BDD.Language
+import Test.BDD.LanguageFree
+import Test.Tasty.Ingredients.FailFast (FailFast(..))
+import Test.Tasty.Options              (OptionDescription(..), lookupOption)
+import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
+                                        TestTree, singleTest, testFailed,
+                                        testPassed)
+import Text.PrettyPrint                (render)
+import Text.Printf                     (printf)
+import Text.Show.Pretty                (ppShow)
 
 class (MonadCatch m, MonadIO m, Monad m, Typeable m) => TestableMonad m where
     runCase :: m Result -> IO Result

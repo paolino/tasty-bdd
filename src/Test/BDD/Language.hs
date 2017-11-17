@@ -21,14 +21,15 @@ module Test.BDD.Language (
     , Phase (..)
     ) where
 
-import           Lens.Micro
-import           Lens.Micro.TH
+import Lens.Micro
+import Lens.Micro.TH
 
 -- | Separating the 2 phases by type
 data Phase = Preparing | Testing
 
 -- | Recording given actions and type related teardowns
 data TestContext m = forall r. TestContext (m r) (r -> m ())
+
 
 -- | Bare hoare language
 data Language m t q a where
@@ -89,4 +90,4 @@ instance Interpret m t q Preparing where
 instance Interpret m t q Testing where
     interpret (Then ca p) = over tests ((:) ca) $ interpret p
     interpret End         = BDDTest [] []
-        $ error "End on its own does not make sense as a test"
+            $ error "End on its own does not make sense as a test"

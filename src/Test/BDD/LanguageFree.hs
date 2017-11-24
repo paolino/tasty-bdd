@@ -65,12 +65,12 @@ thens (Pure _)              = End
 
 
 -- | Bdd to TestTree tasty test
-testBddFree ::
+testBehaviorFree ::
     (MonadIO m , TestableMonad m, Typeable t)
     => String -- ^ test name
     -> BddFree m t () () -- ^ bdd test definition
     -> TestTree  -- ^ resulting tasty test
-testBddFree s = singleTest s . interpret . bddFree
+testBehaviorFree s = singleTest s . interpret . bddFree
 {-
 -- | the when action in disguise
 hoare :: Free (GivenFree m t q) a

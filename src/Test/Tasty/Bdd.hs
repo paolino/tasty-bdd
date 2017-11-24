@@ -11,7 +11,7 @@ module Test.Tasty.Bdd (
     , (^?=)
     , (^?/=)
     , Language (..)
-    , testBdd
+    , testBehavior
     , BDDTesting
     , BDDPreparing
     , TestableMonad (..)
@@ -120,8 +120,8 @@ f ^?/= t = const $ f >>= (@?/= t)
 
 
 -- | Bdd to TestTree tasty test
-testBdd s = singleTest s . interpret
-testBdd ::
+testBehavior s = singleTest s . interpret
+testBehavior ::
     (MonadIO m , TestableMonad m, Typeable t)
     => String -- ^ test name
     -> BDDPreparing m t () -- ^ bdd test definition

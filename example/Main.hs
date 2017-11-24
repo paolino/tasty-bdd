@@ -13,7 +13,7 @@ import Test.Tasty.Ingredients.FailFast (failFast)
 
 
 t1 :: TestTree
-t1 = testBdd "Test sequence"
+t1 = testBehavior "Test sequence"
     $ Given (putStrLn "\nFirst effect")
     $ Given (putStrLn "Another effect")
     $ GivenAndAfter (putStrLn "Aquiring resource" >> return "Resource 1")
@@ -26,7 +26,7 @@ t1 = testBdd "Test sequence"
 
 
 t2 :: TestTree
-t2 = testBdd "Exceedingly long running test"
+t2 = testBehavior "Exceedingly long running test"
     $ GivenAndAfter (return 100000) threadDelay
     $ When (return "Effect" :: IO String)
     $ Then (\w -> length w @?= 6 >> threadDelay 1000000)
@@ -48,7 +48,7 @@ val2 = object [
 
 
 t3 :: TestTree
-t3 = testBdd "json small"
+t3 = testBehavior "json small"
     $ When (return val :: IO Value)
     $ Then (\w -> w @?= val)
     $ Then (\w -> w @?= val2)
@@ -100,7 +100,7 @@ valbig2 = [aesonQQ|
 
 
 t4 :: TestTree
-t4 = testBdd "json big value"
+t4 = testBehavior "json big value"
     $ When (return valbig :: IO Value)
     $ Then (\w -> w @?= valbig)
     $ Then (\w -> w @?= valbig2)

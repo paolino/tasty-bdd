@@ -7,17 +7,20 @@
 
 module Test.Tasty.Bdd (
     (@?=)
+    , (@?/=)
+    , (^?=)
+    , (^?/=)
     , Language (..)
     , testBdd
-    , BddFree
-    , given_
+    , BDDTesting
+    , BDDPreparing
     , TestableMonad (..)
-    , givenAndAfter_
-    , hoare
-    , then_
     , failFastIngredients
     , failFastTester
     , prettyDifferences
+    , beforeEach, afterEach, beforeAll, afterAll
+    , given_
+
 ) where
 
 import Control.Arrow                   ((***))
@@ -28,8 +31,8 @@ import Data.Tagged                     (Tagged(..))
 import Data.TreeDiff
 import Data.Typeable                   (Proxy(..), Typeable)
 import Test.BDD.Language
-import Test.BDD.LanguageFree
-import Test.Tasty                      (defaultMainWithIngredients)
+import Test.Tasty                      (defaultMainWithIngredients,
+                                        withResource)
 import Test.Tasty.Ingredients          (Ingredient)
 import Test.Tasty.Ingredients.Basic    (consoleTestReporter, listingTests)
 import Test.Tasty.Ingredients.FailFast (FailFast(..), failFast)
@@ -78,7 +81,9 @@ prettyDifferences a1 a2 =
     show $ ansiWlEditExpr $ exprDiff (toExpr a1) (toExpr a2)
 
 -- internal exception to trigger visual inspection on output
-newtype EqualityDoesntHold = EqualityDoesntHold String deriving (Show, Typeable)
+newtype EqualityDoesntHold
+    = EqualityDoesntHold String
+    deriving (Show, Typeable)
 
 instance Exception EqualityDoesntHold
 
@@ -88,15 +93,48 @@ infixl 4 @?=
 a1 @?= a2 =
     if a1 == a2
     then return ()
-    else throwM (EqualityDoesntHold (prettyDifferences a1 a2))
+    else throwM
+        $ EqualityDoesntHold
+        $ printf "Expected equality:\n%s"
+        $ prettyDifferences a1 a2
+
+-- | equality test which show pretty differences on fail
+(@?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
+a1 @?/= a2 =
+    if a1 /= a2
+    then return ()
+    else throwM
+        $ EqualityDoesntHold
+        $ printf "Expected inequality:\n%s"
+        $ prettyDifferences a1 a2
+
+(^?=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
+f ^?= t = const $ f >>= (@?= t)
+
+(^?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
+f ^?/= t = const $ f >>= (@?/= t)
+
 
 -- | Bdd to TestTree tasty test
+testBdd s = singleTest s . interpret
 testBdd ::
     (MonadIO m , TestableMonad m, Typeable t)
     => String -- ^ test name
-    -> (BDDTesting m t () -> BDDPreparing m t ()) -- ^ bdd test definition
+    -> BDDPreparing m t () -- ^ bdd test definition
     -> TestTree  -- ^ resulting tasty test
-testBdd s = singleTest s . interpret  . ($End)
+
+beforeAll :: IO () -> TestTree  -> TestTree
+beforeAll f = withResource f (const $ return ()) . const
+
+afterAll :: IO () -> TestTree  -> TestTree
+afterAll f = withResource (return ()) (const f) . const
+
+beforeEach :: IO () -> [TestTree] -> [TestTree]
+beforeEach = map . beforeAll
+
+afterEach :: IO () -> [TestTree] -> [TestTree]
+afterEach = map . afterAll
+
 
 -- | default test runner fail-fast aware
 failFastTester :: TestTree -> IO ()
@@ -105,3 +143,14 @@ failFastTester = defaultMainWithIngredients failFastIngredients
 -- | basic ingredients fail-fast aware
 failFastIngredients :: [Ingredient]
 failFastIngredients = [listingTests, failFast consoleTestReporter]
+
+infixr 0 `given_`
+given_ = Given
+
+instance (ToExpr a, ToExpr b, ToExpr c, ToExpr d, ToExpr e, ToExpr f)
+        => ToExpr (a, b, c, d, e, f) where
+        toExpr (a, b, c, d, e,f)
+                = App "_×_×_×_×_x_"
+                [toExpr a, toExpr b, toExpr c, toExpr d, toExpr e, toExpr f]
+
+

@@ -19,37 +19,14 @@
 
 ## Example
 
-### Using bare language
-
-```
 exampleL :: TestTree
-exampleL = testBdd "Test sequence" $
-      Given (print "Some effect")
-    . Given (print "Another effect")
-    . GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
-                    (print . ("Release "++))
-    . GivenAndAfter (print "Aquiring resource" >> return "Resource 2")
-                    (print . ("Release "++))
-    . When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
-    . Then (@?= ([1..10]++[700..706]))
-    
-```
-
-### Using free monads
-
-```
-exampleF :: TestTree
-exampleF = testBdd "Test sequence" $ hoare g w t
-    where
-    g = do
-          given_ $ print "Some effect"
-          given_ $ print "Another effect"
-          givenAndAfter_ (print "Aquiring resource" >> return "Resource 1")
-                    $ print . ("Release "++)
-          givenAndAfter_ (print "Aquiring resource" >> return "Resource 2")
-                    $ print . ("Release "++)
-    w =  when_ $ print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int]
-    t = then_ (@?= ([1..10]++[700..706])
-    
-```
-
+exampleL = testBdd "Test sequence" 
+    $ Given (print "Some effect")
+    $ Given (print "Another effect")
+    $ GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
+                   (print . ("Release "++))
+    $ GivenAndAfter (print "Aquiring resource" >> return "Resource 2")
+                   (print . ("Release "++))
+    $ When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
+    $ Then (@?= ([1..10]++[700..706]))
+    $ End

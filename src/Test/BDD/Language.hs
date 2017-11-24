@@ -9,7 +9,7 @@
 
 
 module Test.BDD.Language (
-    Language(..)
+      Language(..)
     , BDDPreparing
     , BDDTesting
     , BDDTest(..)
@@ -65,29 +65,34 @@ data BDDTest m t q = BDDTest
             , _when    :: m t -- ^ when action to compute 't'
             }
 
+
 makeLenses ''BDDTest
+
 
 -- | Preparing language types
 type BDDPreparing m t q = Language m t q 'Preparing
 
+
 -- | Testing language types
 type BDDTesting m t q = Language m t q 'Testing
+
 
 -- | An interpreter collecting the actions
 class Interpret m t q a where
     interpret :: Monad m => Language m t q a -> BDDTest m t q
 
-instance Interpret m t q Preparing where
+
+instance Interpret m t q 'Preparing where
     interpret  (Given given p)
-            =  interpret $ GivenAndAfter given (const $ return ()) p
+        =  interpret $ GivenAndAfter given (const $ return ()) p
     interpret (GivenAndAfter given after p)
-            = over context ((:) $ TestContext given after)
-            $ interpret p
+        = over context ((:) $ TestContext given after)
+        $ interpret p
     interpret (When fa p)
             = set when fa $ interpret p
 
 
-instance Interpret m t q Testing where
+instance Interpret m t q 'Testing where
     interpret (Then ca p) = over tests ((:) ca) $ interpret p
     interpret End         = BDDTest [] []
-            $ error "End on its own does not make sense as a test"
+        $ error "End on its own does not make sense as a test"

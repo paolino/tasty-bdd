@@ -6,7 +6,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Tasty.Bdd (
-    (@?=)
+      (@?=)
     , (@?/=)
     , (^?=)
     , (^?/=)
@@ -19,11 +19,8 @@ module Test.Tasty.Bdd (
     , failFastTester
     , prettyDifferences
     , beforeEach, afterEach, beforeAll, afterAll
-    , given_
+    ) where
 
-) where
-
-import Control.Arrow                   ((***))
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
                                         MonadThrow(..))
 import Control.Monad.IO.Class          (MonadIO, liftIO)
@@ -40,9 +37,8 @@ import Test.Tasty.Options              (OptionDescription(..), lookupOption)
 import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
                                         TestTree, singleTest, testFailed,
                                         testPassed)
-import Text.PrettyPrint                (render)
 import Text.Printf                     (printf)
-import Text.Show.Pretty                (ppShow)
+
 
 -- | testable monads can map to IO a Tasty Result
 class (MonadCatch m, MonadIO m, Monad m, Typeable m) => TestableMonad m where
@@ -51,6 +47,7 @@ class (MonadCatch m, MonadIO m, Monad m, Typeable m) => TestableMonad m where
 
 instance TestableMonad IO where
     runCase = id
+
 
 -- | any testable monad can make a BDDTest a tasty test
 instance (Typeable t, TestableMonad m)
@@ -75,17 +72,21 @@ instance (Typeable t, TestableMonad m)
             Nothing -> teardowns >> return (testPassed "")
     testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
 
+
 -- | show a coloured difference of 2 values
 prettyDifferences :: (ToExpr a) => a -> a -> String
 prettyDifferences a1 a2 =
     show $ ansiWlEditExpr $ exprDiff (toExpr a1) (toExpr a2)
+
 
 -- internal exception to trigger visual inspection on output
 newtype EqualityDoesntHold
     = EqualityDoesntHold String
     deriving (Show, Typeable)
 
+
 instance Exception EqualityDoesntHold
+
 
 infixl 4 @?=
 -- | equality test which show pretty differences on fail
@@ -98,6 +99,7 @@ a1 @?= a2 =
         $ printf "Expected equality:\n%s"
         $ prettyDifferences a1 a2
 
+
 -- | equality test which show pretty differences on fail
 (@?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
 a1 @?/= a2 =
@@ -108,8 +110,10 @@ a1 @?/= a2 =
         $ printf "Expected inequality:\n%s"
         $ prettyDifferences a1 a2
 
+
 (^?=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
 f ^?= t = const $ f >>= (@?= t)
+
 
 (^?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
 f ^?/= t = const $ f >>= (@?/= t)
@@ -123,14 +127,18 @@ testBdd ::
     -> BDDPreparing m t () -- ^ bdd test definition
     -> TestTree  -- ^ resulting tasty test
 
+
 beforeAll :: IO () -> TestTree  -> TestTree
 beforeAll f = withResource f (const $ return ()) . const
+
 
 afterAll :: IO () -> TestTree  -> TestTree
 afterAll f = withResource (return ()) (const f) . const
 
+
 beforeEach :: IO () -> [TestTree] -> [TestTree]
 beforeEach = map . beforeAll
+
 
 afterEach :: IO () -> [TestTree] -> [TestTree]
 afterEach = map . afterAll
@@ -140,12 +148,11 @@ afterEach = map . afterAll
 failFastTester :: TestTree -> IO ()
 failFastTester = defaultMainWithIngredients failFastIngredients
 
+
 -- | basic ingredients fail-fast aware
 failFastIngredients :: [Ingredient]
 failFastIngredients = [listingTests, failFast consoleTestReporter]
 
-infixr 0 `given_`
-given_ = Given
 
 instance (ToExpr a, ToExpr b, ToExpr c, ToExpr d, ToExpr e, ToExpr f)
         => ToExpr (a, b, c, d, e, f) where

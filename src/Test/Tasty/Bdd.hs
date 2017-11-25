@@ -19,7 +19,6 @@ module Test.Tasty.Bdd (
     , failFastTester
     , prettyDifferences
     , beforeEach, afterEach, beforeAll, afterAll
-    , given_
 
 ) where
 
@@ -135,6 +134,8 @@ beforeEach = map . beforeAll
 afterEach :: IO () -> [TestTree] -> [TestTree]
 afterEach = map . afterAll
 
+acquire :: IO a -> (IO a -> TestTree) -> TestTree
+acquire f = withResource f (const $ return ())
 
 -- | default test runner fail-fast aware
 failFastTester :: TestTree -> IO ()
@@ -144,8 +145,6 @@ failFastTester = defaultMainWithIngredients failFastIngredients
 failFastIngredients :: [Ingredient]
 failFastIngredients = [listingTests, failFast consoleTestReporter]
 
-infixr 0 `given_`
-given_ = Given
 
 instance (ToExpr a, ToExpr b, ToExpr c, ToExpr d, ToExpr e, ToExpr f)
         => ToExpr (a, b, c, d, e, f) where

@@ -78,12 +78,13 @@ interpret :: Monad m => Language m t q a -> BDDTest m t q
 
 interpret  (Given given p)
         =  interpret $ GivenAndAfter given (const $ return ()) p
+
 interpret (GivenAndAfter given after p)
         = over context ((:) $ TestContext given after)
         $ interpret p
+
 interpret (When fa p)
         = set when fa $ interpret p
-
 
 interpret (Then ca p) = over tests ((:) ca) $ interpret p
 interpret End         = BDDTest [] []

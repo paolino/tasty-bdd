@@ -9,7 +9,7 @@
 
 
 module Test.BDD.Language (
-    Language(..)
+      Language(..)
     , BDDPreparing
     , BDDTesting
     , BDDTest(..)
@@ -65,17 +65,20 @@ data BDDTest m t q = BDDTest
             , _when    :: m t -- ^ when action to compute 't'
             }
 
+
 makeLenses ''BDDTest
+
 
 -- | Preparing language types
 type BDDPreparing m t q = Language m t q 'Preparing
 
+
 -- | Testing language types
 type BDDTesting m t q = Language m t q 'Testing
 
+
 -- | An interpreter collecting the actions
 interpret :: Monad m => Language m t q a -> BDDTest m t q
-
 interpret  (Given given p)
         =  interpret $ GivenAndAfter given (const $ return ()) p
 

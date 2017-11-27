@@ -10,6 +10,7 @@ module Test.Tasty.Bdd (
     , (@?/=)
     , (^?=)
     , (^?/=)
+    , acquire
     , Language (..)
     , testBehavior
     , BDDTesting

@@ -11,6 +11,7 @@ module Test.Tasty.Bdd (
     , (^?=)
     , (^?/=)
     , acquire
+    , Phase (..)
     , Language (..)
     , testBehavior
     , BDDTesting
@@ -38,6 +39,7 @@ import Test.Tasty.Options              (OptionDescription(..), lookupOption)
 import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
                                         TestTree, singleTest, testFailed,
                                         testPassed)
+import Test.Tasty.Runners
 import Text.Printf                     (printf)
 
 
@@ -137,8 +139,12 @@ afterAll :: IO () -> TestTree  -> TestTree
 afterAll f = withResource (return ()) (const f) . const
 
 
-beforeEach :: IO () -> [TestTree] -> [TestTree]
-beforeEach = map . beforeAll
+beforeEach :: IO () -> TestTree -> TestTree
+beforeEach f t@(SingleTest _ _)     = beforeAll f t
+beforeEach f (TestGroup n ts)       = TestGroup n $ (map $ beforeEach f) ts
+beforeEach f (WithResource spec rf) = WithResource spec $ beforeEach f . rf
+beforeEach f (AskOptions rf)        = AskOptions $ beforeEach f . rf
+beforeEach f (PlusTestOptions g t)  = PlusTestOptions g $ beforeEach f t
 
 
 afterEach :: IO () -> [TestTree] -> [TestTree]

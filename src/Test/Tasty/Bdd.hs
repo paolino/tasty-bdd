@@ -20,7 +20,11 @@ module Test.Tasty.Bdd (
     , failFastIngredients
     , failFastTester
     , prettyDifferences
-    , beforeEach, afterEach, beforeAll, afterAll
+    , beforeEach
+    , afterEach
+    , before
+    , after
+    , onEach
     ) where
 
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
@@ -121,37 +125,43 @@ f ^?= t = const $ f >>= (@?= t)
 (^?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
 f ^?/= t = const $ f >>= (@?/= t)
 
-
--- | Bdd to TestTree tasty test
-testBehavior s = singleTest s . interpret
+-- | interpret 'Bdd' sentence to a single 'TestTree'
 testBehavior ::
     (MonadIO m , TestableMonad m, Typeable t)
     => String -- ^ test name
     -> BDDPreparing m t () -- ^ bdd test definition
     -> TestTree  -- ^ resulting tasty test
+testBehavior s = singleTest s . interpret
+
+-- | specialize withResource to prepend an action
+before :: IO () -> TestTree  -> TestTree
+before f = withResource  f return . const
 
 
-beforeAll :: IO () -> TestTree  -> TestTree
-beforeAll f = withResource f (const $ return ()) . const
+-- | specialize withResource to append an action
+after :: IO () -> TestTree  -> TestTree
+after f = withResource (return ()) (const f) . const
 
-
-afterAll :: IO () -> TestTree  -> TestTree
-afterAll f = withResource (return ()) (const f) . const
-
-
+-- | recursively prepend an action
 beforeEach :: IO () -> TestTree -> TestTree
-beforeEach f t@(SingleTest _ _)     = beforeAll f t
-beforeEach f (TestGroup n ts)       = TestGroup n $ (map $ beforeEach f) ts
-beforeEach f (WithResource spec rf) = WithResource spec $ beforeEach f . rf
-beforeEach f (AskOptions rf)        = AskOptions $ beforeEach f . rf
-beforeEach f (PlusTestOptions g t)  = PlusTestOptions g $ beforeEach f t
+beforeEach = onEach . before
 
+-- | recursively modify a 'TestTree'
+onEach :: (TestTree -> TestTree) -> TestTree -> TestTree
+onEach op t@(SingleTest _ _)     = op t
+onEach op (TestGroup n ts)       = TestGroup n $ (map $ onEach op) ts
+onEach op (WithResource spec rf) = WithResource spec $ onEach op . rf
+onEach op (AskOptions rf)        = AskOptions $ onEach op . rf
+onEach op (PlusTestOptions g t)  = PlusTestOptions g $ onEach op t
 
-afterEach :: IO () -> [TestTree] -> [TestTree]
-afterEach = map . afterAll
+-- | recursively append an action
+afterEach :: IO () -> TestTree -> TestTree
+afterEach = onEach . after
 
-acquire :: IO a -> (IO a -> TestTree) -> TestTree
-acquire f = withResource f (const $ return ())
+-- | specialize withResource to just acquire a resource
+acquire :: MonadIO m => IO a -> (m a -> TestTree) -> TestTree
+acquire f g = withResource f (const $ return ()) (g . liftIO)
+
 
 -- | default test runner fail-fast aware
 failFastTester :: TestTree -> IO ()

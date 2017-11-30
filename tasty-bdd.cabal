@@ -35,20 +35,30 @@ library
                     , tree-diff
     default-language: Haskell2010
 
-executable example
-    hs-source-dirs:   example
-    main-is:          Main.hs
-    ghc-options:      -Wall
-    build-depends:    base
-                    , tasty
-                    , tasty-bdd
-                    , tasty-fail-fast
-                    , tasty-hunit
+test-suite test
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    default-extensions: OverloadedStrings
+    build-depends:    base >= 4.7 && <5
+                    , exceptions
                     , aeson
                     , aeson-qq
+                    , HUnit
+                    , mtl
+                    , tasty
+                    , tasty-hunit
+                    , tasty-bdd
+                    , tasty-fail-fast
+                    , transformers
+                    , temporary
+                    , qm-interpolated-string
+                    , text
+                    , regex-posix
+    hs-source-dirs:   tests
+    ghc-options:      -Wall
     default-extensions: OverloadedStrings
     default-language: Haskell2010
 
 source-repository head
     type:             git
-    location:         https://github.com/paolino/bdd
+    location:         https://github.com/paolino/tasty-bdd

@@ -1,11 +1,22 @@
 name:               tasty-bdd
 version:            0.1.0.0
 synopsis: bdd tests language and tasty provider
--- description:
+description:
+    * A type constrained language to express
+      *  *Given* as ordered preconditions or
+      *  *GivenAndAfter* as oredered preconditions with reversed order of teardown actions (sort of resource management)
+      *  One only *When* to introduce a last precondition and catch it's output to be fed to
+      *  Some *Then* tests that will receive the output of *When*
+    * Support for do notation via free monad for composing _givens_ and _thens_ 
+    * One monad independent pure interpreter
+    * One driver for the great [tasty](https://github.com/feuerbach/tasty) test library,  monad parametrized
+    * Support for [tasty-fail-fast](https://hackage.haskell.org/package/tasty-fail-fast) strategy flag which will not execute the teardown actions of the failed test
+    * A sophisticated form of value introspection to show the differences on equality failure from [tree-diff](https://github.com/phadej/tree-diffdifftree) package 
+    * Recursive test decorators to prepend or append action to all the tests inside a test tree
 homepage:           https://github.com/paolino/bdd#readme
 license:            BSD3
 license-file:       LICENSE
-author:             Paolo Veronelli
+author:             Paolo Veronelli, Pavlo Kerestey
 maintainer:         paolo.veronelli@gmail.com
 copyright:          2017 Paolo Veronelli
 category:           Test
@@ -17,6 +28,7 @@ library
     hs-source-dirs:   src
     exposed-modules:  Test.Tasty.Bdd
                     , Test.BDD.Language
+                    , Test.BDD.LanguageFree
     ghc-options:      -Wall
     build-depends:    base >= 4.7 && <5
                     , exceptions

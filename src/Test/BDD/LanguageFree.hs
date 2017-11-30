@@ -1,3 +1,17 @@
+-------------------------------------------------------------------------------
+-- | Free monads to introduce do notation in ''Language''
+--
+-- Module    :
+-- Copyright :  (c) Paolo Veronelli 2017
+-- License   :  All rights reserved
+-- Maintainer:  paolo.veronelli@gmail.com
+-- Stability :  experimental
+-- Portability: non-portable
+--
+--
+--
+-------------------------------------------------------------------------------
+
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -19,10 +33,14 @@ module Test.BDD.LanguageFree (
     ) where
 
 import Control.Monad.Free
-import Test.BDD.Language  (BDDPreparing, BDDTesting,
-                           Language(End, Given, GivenAndAfter, Then, When))
+import Control.Monad.Trans
+import Data.Typeable
+import Test.BDD.Language    (BDDPreparing, BDDTesting, Language(..), interpret)
 import Test.Tasty
 import Test.Tasty.Bdd
+import Test.Tasty.Providers
+
+
 data GivenFree m t q a where
     GivenFree :: m () -> a -> GivenFree m t q a
     GivenAndAfterFree :: m r -> (r -> m ()) -> a -> GivenFree m t q a

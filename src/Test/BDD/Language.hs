@@ -1,3 +1,32 @@
+-------------------------------------------------------------------------------
+-- |
+--
+-- Module    :  Test.BDD.Language
+-- Copyright :  (c) Paolo Veronelli, Pavlo Kerestey 2017
+-- License   :  BSD3
+-- Maintainer:  paolo.veronelli@gmail.com
+-- Stability :  experimental
+-- Portability: non-portable
+--
+--
+-- The constrained language to define behaviors in BDD terminology
+--
+-- @
+-- exampleL :: TestTree
+-- exampleL = testBehavior "Test sequence"
+--     $ Given (print "Some effect")
+--     $ Given (print "Another effect")
+--     $ GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
+--                    (print . ("Release "++))
+--     $ GivenAndAfter (print "Aquiring resource" >> return "Resource 2")
+--                    (print . ("Release "++))
+--     $ When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
+--     $ Then (@?= ([1..10]++[700..706]))
+--     $ End
+-- @
+--
+-------------------------------------------------------------------------------
+
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
@@ -15,8 +44,8 @@ module Test.BDD.Language (
     , BDDTest(..)
     , TestContext(..)
     , context
-    , tests
     , when
+    , tests
     , interpret
     , Phase (..)
     ) where
@@ -33,28 +62,29 @@ data TestContext m = forall r. TestContext (m r) (r -> m ())
 
 -- | Bare hoare language
 data Language m t q a where
-    -- ^ action to prepare the test
+
+    -- | action to prepare the test
     Given           :: m ()
                     -> Language m t q 'Preparing
                     -> Language m t q 'Preparing
 
-    -- ^ action to prepare the test, and related teardown action
+    -- | action to prepare the test, and related teardown action
     GivenAndAfter   :: m r
                     -> (r -> m ())
                     -> Language m t q 'Preparing
                     -> Language m t q 'Preparing
 
-    -- ^ core logic of the test (last preparing action)
+    -- | core logic of the test (last preparing action)
     When            :: m t
                     -> Language m t q 'Testing
                     -> Language m t q 'Preparing
 
-    -- ^ action producing a test
+    -- | action producing a test
     Then            :: (t -> m q)
                     -> Language m t q 'Testing
                     -> Language m t q 'Testing
 
-    -- ^ final placeholder
+    -- | final placeholder
     End             :: Language m t q 'Testing
 
 

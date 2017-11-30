@@ -1,3 +1,16 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module    :  Test.Tasty.Bdd
+-- Copyright :  (c) Paolo Veronelli, Pavlo Kerestey 2017
+-- License   :  All rights reserved
+-- Maintainer:  paolo.veronelli@gmail.com
+-- Stability :  experimental
+-- Portability: non-portable
+--
+-- Tasty driver for 'Language'
+--
+--
+-------------------------------------------------------------------------------
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -50,7 +63,6 @@ import Text.Printf                     (printf)
 -- | testable monads can map to IO a Tasty Result
 class (MonadCatch m, MonadIO m, Monad m, Typeable m) => TestableMonad m where
     runCase :: m Result -> IO Result
-
 
 instance TestableMonad IO where
     runCase = id
@@ -107,7 +119,7 @@ a1 @?= a2 =
         $ prettyDifferences a1 a2
 
 
--- | equality test which show pretty differences on fail
+-- | inequality test which show pretty differences on fail
 (@?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
 a1 @?/= a2 =
     if a1 /= a2
@@ -117,11 +129,14 @@ a1 @?/= a2 =
         $ printf "Expected inequality:\n%s"
         $ prettyDifferences a1 a2
 
-
+-- | shortcut to ignore the input and run another action instead in Then
+-- matching equality
 (^?=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
 f ^?= t = const $ f >>= (@?= t)
 
 
+-- | shortcut to ignore the input and run another action instead in Then
+-- matching inequality
 (^?/=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => m a -> a -> b -> m ()
 f ^?/= t = const $ f >>= (@?/= t)
 

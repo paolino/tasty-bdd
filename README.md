@@ -12,6 +12,7 @@
 * One driver for the great [tasty](https://github.com/feuerbach/tasty) test library,  monad parametrized
 * Support for [tasty-fail-fast](https://hackage.haskell.org/package/tasty-fail-fast) strategy flag which will not execute the teardown actions of the failed test
 * A sophisticated form of value introspection to show the differences on equality failure from [tree-diff](https://github.com/phadej/tree-diffdifftree) package 
+* Recursive test decorators to prepend or append action to all the tests inside a test tree
 
 ## Background
 
@@ -19,6 +20,7 @@
 
 ## Example
 
+```
 exampleL :: TestTree
 exampleL = testBdd "Test sequence" 
     $ Given (print "Some effect")
@@ -30,3 +32,4 @@ exampleL = testBdd "Test sequence"
     $ When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
     $ Then (@?= ([1..10]++[700..706]))
     $ End
+```

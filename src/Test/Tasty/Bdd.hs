@@ -188,10 +188,4 @@ failFastIngredients :: [Ingredient]
 failFastIngredients = [listingTests, failFast consoleTestReporter]
 
 
-instance (ToExpr a, ToExpr b, ToExpr c, ToExpr d, ToExpr e, ToExpr f)
-        => ToExpr (a, b, c, d, e, f) where
-        toExpr (a, b, c, d, e,f)
-                = App "_×_×_×_×_x_"
-                [toExpr a, toExpr b, toExpr c, toExpr d, toExpr e, toExpr f]
-
 

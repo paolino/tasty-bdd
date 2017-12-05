@@ -38,6 +38,7 @@ module Test.Tasty.Bdd (
     , before
     , after
     , onEach
+    , captureStdout
     ) where
 
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
@@ -46,6 +47,7 @@ import Control.Monad.IO.Class          (MonadIO, liftIO)
 import Data.Tagged                     (Tagged(..))
 import Data.TreeDiff
 import Data.Typeable                   (Proxy(..), Typeable)
+import System.CaptureStdout
 import Test.BDD.Language
 import Test.Tasty                      (defaultMainWithIngredients,
                                         withResource)

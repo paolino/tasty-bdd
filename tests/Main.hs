@@ -2,28 +2,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
-import           Control.Concurrent              (threadDelay)
 import           Control.Concurrent.MVar
 import           Control.Exception
-import           Control.Monad
-import           Data.Aeson
-import           Data.Aeson.QQ
-import           Data.Char
-import qualified Data.Text                       as T
-import qualified Data.Text.IO                    as T
-import qualified Test.HUnit                      as H
+import qualified Test.HUnit              as H
 import           Test.Tasty
 import           Test.Tasty.Bdd
 import           Test.Tasty.HUnit
-import           Test.Tasty.Ingredients          (Ingredient)
-import           Test.Tasty.Ingredients.Basic    (consoleTestReporter,
-                                                  listingTests)
-import           Test.Tasty.Ingredients.FailFast (failFast)
-import           Test.Tasty.Providers
-import           Text.InterpolatedString.QM
 
-import           CaptureStdout
-
+main :: IO ()
 main = defaultMain $ testGroup "All"
     [
     testCase "givens and givenandafter order is respected" $ do

@@ -29,6 +29,7 @@ library
     exposed-modules:  Test.Tasty.Bdd
                     , Test.BDD.Language
                     , Test.BDD.LanguageFree
+                    , System.CaptureStdout
     ghc-options:      -Wall
     build-depends:    base >= 4.7 && <5
                     , exceptions
@@ -45,6 +46,8 @@ library
                     , tasty-hunit
                     , transformers
                     , tree-diff
+                    , text
+                    , temporary
     default-language: Haskell2010
 
 test-suite test

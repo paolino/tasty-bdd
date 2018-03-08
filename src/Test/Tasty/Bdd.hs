@@ -28,6 +28,7 @@ module Test.Tasty.Bdd (
     , Phase (..)
     , Language (..)
     , testBehavior
+    , testBehaviorIO
     , BDDTesting
     , BDDPreparing
     , TestableMonad (..)
@@ -184,6 +185,13 @@ acquire f g = withResource f (const $ return ()) (g . liftIO)
 
 acquirePure :: IO a -> (a -> TestTree) -> TestTree
 acquirePure f g = acquire f $ g . unsafePerformIO
+
+testBehaviorIO ::
+    (Typeable t, MonadIO m , TestableMonad m)
+    => String -- ^ test name
+    -> IO (BDDPreparing m t ()) -- ^ bdd test definition
+    -> TestTree  -- ^ resulting tasty test
+testBehaviorIO s f = acquirePure f (testBehavior s)
 
 -- | default test runner fail-fast aware
 failFastTester :: TestTree -> IO ()

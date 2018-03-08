@@ -24,6 +24,7 @@ module Test.Tasty.Bdd (
     , (^?=)
     , (^?/=)
     , acquire
+    , acquirePure
     , Phase (..)
     , Language (..)
     , testBehavior
@@ -48,6 +49,7 @@ import Data.Tagged                     (Tagged(..))
 import Data.TreeDiff
 import Data.Typeable                   (Proxy(..), Typeable)
 import System.CaptureStdout
+import System.IO.Unsafe                (unsafePerformIO)
 import Test.BDD.Language
 import Test.Tasty                      (defaultMainWithIngredients,
                                         withResource)
@@ -179,6 +181,9 @@ afterEach = onEach . after
 acquire :: MonadIO m => IO a -> (m a -> TestTree) -> TestTree
 acquire f g = withResource f (const $ return ()) (g . liftIO)
 
+
+acquirePure :: IO a -> (a -> TestTree) -> TestTree
+acquirePure f g = acquire f $ g . unsafePerformIO
 
 -- | default test runner fail-fast aware
 failFastTester :: TestTree -> IO ()

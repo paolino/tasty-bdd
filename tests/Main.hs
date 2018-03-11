@@ -44,7 +44,7 @@ main = defaultMain $ testGroup "All"
                         [ testCase "t3" $ app 3]
                     , testCase "t4" $ app 4
                     ]
-        testTest t [0,1,0,2,0,3,0,4]
+        testTest t ([0,1,0,2,0,3,0,4] :: [Int])
 
     , testCase "recursive after decorations are honored" $ do
         let t app = defaultMain
@@ -56,7 +56,7 @@ main = defaultMain $ testGroup "All"
                         [ testCase "t3" $ app 3]
                     , testCase "t4" $ app 4
                     ]
-        testTest t [1,0,2,0,3,0,4,0]
+        testTest t ([1,0,2,0,3,0,4,0] :: [Int])
     ]
 
 
@@ -64,7 +64,7 @@ testTest :: (Show a, Eq a) => ((a -> IO ()) -> IO ()) -> [a] -> IO ()
 testTest t r' = do
     l <- newMVar []
     let app x = modifyMVar_ l (return . (x :))
-    handle (\(_ :: SomeException) -> return "")
+    _ <- handle (\(_ :: SomeException) -> return "")
         $ captureStdout "tasty-bdd-test-suite"
         $ t app
     r <- readMVar l

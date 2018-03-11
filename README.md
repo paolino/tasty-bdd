@@ -28,9 +28,9 @@ exampleL = testBdd "Test sequence"
     $ Given (print "Some effect")
     $ Given (print "Another effect")
     $ GivenAndAfter (print "Aquiring resource" >> return "Resource 1")
-                   (print . ("Release "++))
+                    (print . ("Release "++))
     $ GivenAndAfter (print "Aquiring resource" >> return "Resource 2")
-                   (print . ("Release "++))
+                    (print . ("Release "++))
     $ When (print "Action returning" >> return ([1..10]++[100..106]) :: IO [Int])
     $ Then (@?= ([1..10]++[700..706]))
     $ End

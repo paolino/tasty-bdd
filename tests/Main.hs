@@ -24,15 +24,14 @@ main = defaultMain $ testGroup "All"
                 $ When (app "Action returning" >> return ())
                 $ Then (\_ -> return ())
                 $ End
-        testTest t $ [
-                    "First effect",
-                    "Another effect",
-                    "Aquiring resource",
-                    "Aquiring resource",
-                    "Action returning",
-                    "Release Resource 2",
-                    "Release Resource 1"
-                    ]
+        testTest t [ "First effect"
+                   , "Another effect"
+                   , "Aquiring resource"
+                   , "Aquiring resource"
+                   , "Action returning"
+                   , "Release Resource 2"
+                   , "Release Resource 1"
+                   ]
 
     , testCase "recursive before decorations are honored" $ do
         let t app = defaultMain
@@ -40,8 +39,7 @@ main = defaultMain $ testGroup "All"
                 $ testGroup "g1"
                     [ testCase "t1" $ app 1
                     , testCase "t2" $ app 2
-                    , testGroup "g2"
-                        [ testCase "t3" $ app 3]
+                    , testGroup "g2" [ testCase "t3" $ app 3]
                     , testCase "t4" $ app 4
                     ]
         testTest t ([0,1,0,2,0,3,0,4] :: [Int])
@@ -52,8 +50,7 @@ main = defaultMain $ testGroup "All"
                 $ testGroup "g1"
                     [ testCase "t1" $ app 1
                     , testCase "t2" $ app 2
-                    , testGroup "g2"
-                        [ testCase "t3" $ app 3]
+                    , testGroup "g2" [ testCase "t3" $ app 3]
                     , testCase "t4" $ app 4
                     ]
         testTest t ([1,0,2,0,3,0,4,0] :: [Int])
@@ -69,90 +66,3 @@ testTest t r' = do
         $ t app
     r <- readMVar l
     r H.@?= reverse r'
-
-
-{-
-t2 :: TestTree
-t2 = testBehavior "Exceedingly long running test"
-    $ GivenAndAfter (return 100000) threadDelay
-    $ When (return "Effect" :: IO String)
-    $ Then (\w -> length w @?= 6 >> threadDelay 1000000)
-    $ Then (\w -> tail w @?= "ffect" >> threadDelay 1000000)
-    $ Then (\w -> init w @?= "Effec" >> threadDelay 1000000)
-    $ End
-
-val :: Value
-val = object [
-      "boolean" .= True,
-        "numbers" .= [1,2,3::Int] ]
-
-
-val2 :: Value
-val2 = object [
-      "boolean" .= True,
-        "numbers" .= [1,4,3::Int] ]
-
-
-t3 :: TestTree
-t3 = testBehavior "json small"
-    $ When (return val :: IO Value)
-    $ Then (\w -> w @?= val)
-    $ Then (\w -> w @?= val2)
-    $ End
-
-
-valbig :: Value
-valbig = [aesonQQ|
-                 [
-                     {
-                         "type":"OrderOveruseRow",
-                         "customer_no":220011,
-                         "order_no":"10/10",
-                         "units":"GB",
-                         "line_numbers":"LN55",
-                         "order_start":1448924400,
-                         "order_end":1451602799,
-                         "billing_method":"Volume Outgoing",
-                         "ordered_amount":100,
-                         "actual_usage":"1.00",
-                         "overused_amount":"0.00",
-                         "customer_name":"CustomerNameGmbh",
-                         "position_text":""
-                    }
-                    ]
-            |]
-
-
-valbig2 :: Value
-valbig2 = [aesonQQ|
-                 [
-                     {
-                         "type":"OrderOveruseRow",
-                         "customer_no":220011,
-                         "order_no":"10/10",
-                         "units":"GB",
-                         "line_numbers":"LN55",
-                         "order_start":1448924400,
-                         "order_end":1451602799,
-                         "billing_method":"Volume Outgoing",
-                         "ordered_amount":100,
-                         "actual_usage":"1.20",
-                         "overused_amount":"0.00",
-                         "customer_name":"CustomerTameGmbh",
-                         "position_text":""
-                    }
-                    ]
-            |]
-
-
-t4 :: TestTree
-t4 = testBehavior "json big value"
-    $ When (return valbig :: IO Value)
-    $ Then (\w -> w @?= valbig)
-    $ Then (\w -> w @?= valbig2)
-    $ End
-
-
-
-
--}

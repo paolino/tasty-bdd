@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  test-8.0.2:
+    docker:
+      - image: library/haskell:8.0.2
+    steps:
+      - checkout
+      - run: stack test --stack-yaml=stack-8.0.2
+
+  test-8.2.0:
+    docker:
+      - image: fpco/stack-build:lts-10 # because library/haskell does not have 8.2.2 yet
+    steps:
+      - checkout
+      - run: stack test --stack-yaml=stack-8.2.2

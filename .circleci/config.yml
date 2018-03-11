@@ -16,7 +16,7 @@ jobs:
 
   test-8.2.2:
     docker:
-      - image: fpco/stack-build:lts-10 # because library/haskell does not have 8.2.2 yet
+      - image: library/haskell:8.0.2 # because library/haskell does not have 8.2.2 yet
     steps:
       - restore_cache:
           keys:

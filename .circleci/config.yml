@@ -22,6 +22,7 @@ jobs:
           keys:
             - stack-ghc-8.2.2-{{ arch }}-{{ checksum "stack-8.2.2.yaml" }}
       - checkout
+      - run: stack setup --stack-yaml=stack-8.2.2.yaml
       - run: stack test --stack-yaml=stack-8.2.2.yaml
       - save_cache:
           key: stack-ghc-8.2.2-{{ arch }}-{{ checksum "stack-8.2.2.yaml" }}

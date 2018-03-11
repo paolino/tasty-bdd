@@ -4,10 +4,10 @@ jobs:
     docker:
       - image: library/haskell:8.0.2
     steps:
+      - checkout
       - restore_cache:
           keys: 
             - stack-ghc-8.0.2-{{ arch }}-{{ checksum "stack-8.0.2.yaml" }}
-      - checkout
       - run: stack test --stack-yaml=stack-8.0.2.yaml
       - save_cache:
           key: stack-ghc-8.0.2-{{ arch }}-{{ checksum "stack-8.0.2.yaml" }}
@@ -18,11 +18,11 @@ jobs:
     docker:
       - image: library/haskell:8.0.2 # because library/haskell does not have 8.2.2 yet
     steps:
+      - checkout
       - restore_cache:
           keys:
             - stack-ghc-8.2.2-{{ arch }}-{{ checksum "stack-8.2.2.yaml" }}
-      - checkout
-      - run: stack setup --stack-yaml=stack-8.2.2.yaml
+      - run: stack setup 8.2.2 --stack-yaml=stack-8.2.2.yaml
       - run: stack test --stack-yaml=stack-8.2.2.yaml
       - save_cache:
           key: stack-ghc-8.2.2-{{ arch }}-{{ checksum "stack-8.2.2.yaml" }}

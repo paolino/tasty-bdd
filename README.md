@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/ptek/tasty-bdd/tree/master.svg?style=svg)](https://circleci.com/gh/ptek/tasty-bdd/tree/master)
+
 # Behavior-driven development 
 
 ## A [Haskell](https://www.haskell.org/) Behavior Driven Development framework featuring:

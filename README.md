@@ -23,8 +23,10 @@
 ## Example
 
 ```
-exampleL :: TestTree
-exampleL = testBdd "Test sequence" 
+import Test.Tasty.Bdd
+
+tests :: TestTree
+tests = testBdd "Test sequence" 
     $ Given (print "Some effect")
     $ Given (print "Another effect")
     $ GivenAndAfter (print "Aquiring resource" >> return "Resource 1")

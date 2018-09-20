@@ -49,12 +49,12 @@ main = defaultMain $ testGroup
         $ do
               let
                   t write = defaultMain $ mkFreeBDD "test free" $ do
-                      q <- given_ $ do
+                      q <- given $ do
                           write "First effect"
                           return (1 :: Int)
-                      given_ $ write "Another effect"
+                      given $ write "Another effect"
                       q' <-
-                          givenAndAfter_
+                          givenAndAfter
                               (  write "Aquiring resource"
                               >> return (q + 1, "Resource " <> show q)
                               )
@@ -62,7 +62,7 @@ main = defaultMain $ testGroup
                           . ("Release " ++)
                       givenAndAfter_
                               (  write "Aquiring resource"
-                              >> return ((), "Resource " <> show q')
+                              >> return ("Resource " <> show q')
                               )
                           $ write
                           . ("Release " ++)
@@ -84,12 +84,12 @@ main = defaultMain $ testGroup
         $ do
               let
                   t write = defaultMain $ mkFreeBDD "test free" $ do
-                      q <- given_ $ do
+                      q <- given $ do
                           write "First effect"
                           return (1 :: Int)
-                      given_ $ write "Another effect"
+                      given $ write "Another effect"
                       q' <-
-                          givenAndAfter_
+                          givenAndAfter
                               (  write "Aquiring resource"
                               >> return (q + 1, "Resource " <> show q)
                               )
@@ -97,7 +97,7 @@ main = defaultMain $ testGroup
                           . ("Release " ++)
                       givenAndAfter_
                               (  write "Aquiring resource"
-                              >> return ((), "Resource " <> show q')
+                              >> return ("Resource " <> show q')
                               )
                           $ write
                           . ("Release " ++)

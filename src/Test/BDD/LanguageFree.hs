@@ -21,11 +21,13 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE Rank2Types                #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TupleSections             #-}
 
 module Test.BDD.LanguageFree
     (
-        given_
+        given
         , givenAndAfter_
+        , givenAndAfter
         , then_
         , when_
         , GivenFree
@@ -90,11 +92,11 @@ interpret :: (Monad m, MonadCatch m, Typeable m)
           => m ()
           -> Language m t 'Preparing
           -> m (m ())
-interpret td (Given given p) = do
-    x <- rethrow td  given
+interpret td (Given g p) = do
+    x <- rethrow td  g
     interpret td $ p x
-interpret td (GivenAndAfter given after p) = do
-    (x, r) <- rethrow td  given
+interpret td (GivenAndAfter g after p) = do
+    (x, r) <- rethrow td  g
     interpret (after r >> td) $ p x
 interpret td (When fa p) = do
     x <- rethrow td fa
@@ -126,11 +128,14 @@ instance Functor (GivenFree m t) where
     fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f <$> x
     fmap f (WhenFree mt ft x)          = WhenFree mt ft $ f x
 
-given_ :: m a -> Free (GivenFree m t) a
-given_ m = liftF $ GivenFree m id
+given :: m a -> Free (GivenFree m t) a
+given m = liftF $ GivenFree m id
 
-givenAndAfter_ :: m (b,r) -> (r -> m ()) -> Free (GivenFree m t) b
-givenAndAfter_ g td = liftF $ GivenAndAfterFree g td id
+givenAndAfter :: m (b,r) -> (r -> m ()) -> Free (GivenFree m t) b
+givenAndAfter g td = liftF $ GivenAndAfterFree g td id
+
+givenAndAfter_ :: Functor m =>  m r -> (r -> m ()) -> Free (GivenFree m t) ()
+givenAndAfter_ g td = liftF $ GivenAndAfterFree (((),) <$>  g) td id
 
 when_ :: m t -> Free (ThenFree m t) b -> Free (GivenFree m t) ()
 when_ mt ts = liftF $ WhenFree mt ts ()

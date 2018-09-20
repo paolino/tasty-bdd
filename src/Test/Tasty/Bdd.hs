@@ -99,8 +99,7 @@ instance (Typeable t, TestableMonad m)
             loop []           = return Nothing
             loop (then' : xs) = do
                 liftIO
-                    $ f
-                          (Progress
+                    $ f (Progress
                               ""
                               (fromIntegral (length xs) / fromIntegral (length ts))
                           )

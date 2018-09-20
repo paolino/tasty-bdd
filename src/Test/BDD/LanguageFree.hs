@@ -19,7 +19,6 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types            #-}
-{-# LANGUAGE TemplateHaskell       #-}
 
 module Test.BDD.LanguageFree (
         given_
@@ -30,6 +29,7 @@ module Test.BDD.LanguageFree (
         , ThenFree
         , BddFree
         , bddFree
+        , testBehaviorFree
     ) where
 
 import Control.Monad.Free
@@ -42,20 +42,20 @@ import Test.Tasty.Providers
 
 
 data GivenFree m t q a where
-    GivenFree :: m () -> a -> GivenFree m t q a
-    GivenAndAfterFree :: m r -> (r -> m ()) -> a -> GivenFree m t q a
-    WhenFree :: m t -> Free (ThenFree m t q) b -> a -> GivenFree m t q a
+    GivenFree :: m b -> (b -> a) -> GivenFree m t q a
+    GivenAndAfterFree :: m b -> (b -> m ()) -> (b -> a) -> GivenFree m t q a
+    WhenFree :: m b -> Free (ThenFree m b q) c -> a -> GivenFree m t q a
 
 instance Functor (GivenFree m t q) where
-    fmap f (GivenFree m x)             = GivenFree m $ f x
-    fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f x
+    fmap f (GivenFree m x)             = GivenFree m $ f <$> x
+    fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f <$> x
     fmap f (WhenFree mt ft x)          = WhenFree mt ft $ f x
 
-given_ :: m () -> Free (GivenFree m t q) ()
-given_ m = liftF $ GivenFree m ()
+given_ :: m a -> Free (GivenFree m t q) a
+given_ m = liftF $ GivenFree m id
 
-givenAndAfter_ :: m r -> (r -> m ()) -> Free (GivenFree m t q) ()
-givenAndAfter_ g td = liftF $ GivenAndAfterFree g td ()
+givenAndAfter_ :: m r -> (r -> m ()) -> Free (GivenFree m t q) r
+givenAndAfter_ g td = liftF $ GivenAndAfterFree g td id
 
 when_ :: m t -> Free (ThenFree m t q) b -> Free (GivenFree m t q) ()
 when_ mt ts = liftF $ WhenFree mt ts ()

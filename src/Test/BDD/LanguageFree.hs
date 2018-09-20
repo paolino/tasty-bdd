@@ -12,39 +12,119 @@
 --
 -------------------------------------------------------------------------------
 
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types            #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveFunctor             #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 
-module Test.BDD.LanguageFree (
+module Test.BDD.LanguageFree
+    (
         given_
         , givenAndAfter_
         , then_
         , when_
         , GivenFree
         , ThenFree
-        , BddFree
-        , bddFree
-        , testBehaviorFree
-    ) where
+        , mkFreeBDD
+        , FreeBDD (..)
+        , JumpOut (..)
+--        , testBehaviorFree
+--
+--
+    )
+    where
 
 import Control.Monad.Free
-import Control.Monad.Trans
+-- import Control.Exception
+import Control.Monad.Catch
 import Data.Typeable
-import Test.BDD.Language    (BDDPreparing, BDDTesting, Language(..), interpret)
-import Test.Tasty
-import Test.Tasty.Bdd
 import Test.Tasty.Providers
+
+
+-- | Separating the 2 phases by type
+data Phase = Preparing | Testing
+
+
+
+-- | Bare hoare language
+data Language m t q a where
+    -- | action to prepare the test
+    Given           :: m a
+                    -> (a -> Language m t q 'Preparing)
+                    -> Language m t q 'Preparing
+    -- | action to prepare the test, and related teardown action
+    GivenAndAfter   :: m (a,r)
+                    -> (r -> m ())
+                    -> (a -> Language m t q 'Preparing)
+                    -> Language m t q 'Preparing
+    -- | core logic of the test (last preparing action)
+    When            :: m t
+                    -> Language m t q 'Testing
+                    -> Language m t q 'Preparing
+    -- | action producing a test
+    Then            :: (t -> m q)
+                    -> Language m t q 'Testing
+                    -> Language m t q 'Testing
+    -- | final placeholder
+    End             :: Language m t q 'Testing
+
+
+
+
+-- | Preparing language types
+type BDDPreparing m t q = Language m t q 'Preparing
+
+
+-- | Testing language types
+type BDDTesting m t q = Language m t q 'Testing
+
+data JumpOut m = JumpOut SomeException (m ())
+
+instance Show (JumpOut m) where
+    show (JumpOut e _) ="JumpOut: " <> show e
+instance (Typeable m) => Exception (JumpOut m)
+
+-- | An interpreter collecting the actions
+interpret :: (Monad m, MonadCatch m, Typeable m)
+          => m ()
+          -> Language m t () 'Preparing
+          -> m (m ())
+interpret td (Given given p) = do
+    x <- given `catch` (\(e :: SomeException) -> throwM $ JumpOut e td)
+    interpret td $ p x
+--        =  interpret $ GivenAndAfter ((, ()) <$> given) (const $ return ()) p
+interpret td (GivenAndAfter given after p) = do
+    (x, r) <- given `catch` (\(e :: SomeException) -> throwM $ JumpOut e td)
+    interpret (after r >> td) $ p x
+interpret td (When fa p) = do
+    x <- fa `catch` (\(e :: SomeException) -> throwM $ JumpOut e td)
+    interpretT td x p
+
+interpretT :: (Monad m, MonadCatch m, Typeable m)
+           => m ()
+           -> t
+           -> Language m t () 'Testing
+           -> m (m ())
+interpretT td _ End        = return td
+interpretT td x (Then f p) = do
+    f x `catch` (\(e :: SomeException) -> throwM $ JumpOut e td)
+    interpretT td x p
+
 
 
 data GivenFree m t q a where
     GivenFree :: m b -> (b -> a) -> GivenFree m t q a
-    GivenAndAfterFree :: m b -> (b -> m ()) -> (b -> a) -> GivenFree m t q a
-    WhenFree :: m b -> Free (ThenFree m b q) c -> a -> GivenFree m t q a
+    GivenAndAfterFree :: m (b,r) -> (r -> m ()) -> (b -> a) -> GivenFree m t q a
+    WhenFree :: m t -> Free (ThenFree m t q) c -> a -> GivenFree m t q a
+
+data ThenFree m t q a
+    = ThenFree (t -> m q) a
+    deriving Functor
 
 instance Functor (GivenFree m t q) where
     fmap f (GivenFree m x)             = GivenFree m $ f <$> x
@@ -54,58 +134,31 @@ instance Functor (GivenFree m t q) where
 given_ :: m a -> Free (GivenFree m t q) a
 given_ m = liftF $ GivenFree m id
 
-givenAndAfter_ :: m r -> (r -> m ()) -> Free (GivenFree m t q) r
+givenAndAfter_ :: m (b,r) -> (r -> m ()) -> Free (GivenFree m t q) b
 givenAndAfter_ g td = liftF $ GivenAndAfterFree g td id
 
 when_ :: m t -> Free (ThenFree m t q) b -> Free (GivenFree m t q) ()
 when_ mt ts = liftF $ WhenFree mt ts ()
 
-type BddFree m t q = Free (GivenFree m t q)
-
-bddFree :: Free (GivenFree m t q) x -> BDDPreparing m t q
-
-bddFree (Free (GivenFree m f))             = Given m $ bddFree f
-bddFree (Free (GivenAndAfterFree mr rm f)) = GivenAndAfter mr rm $ bddFree f
-bddFree (Free (WhenFree mt ts _))          = When mt $ thens ts
-bddFree (Pure _)                           = error "empty tests not allowed"
-
-data ThenFree m t q a
-    = ThenFree (t -> m q) a
-    deriving Functor
-
-then_ :: (t -> m q) -> Free (ThenFree m t q) ()
-then_ m = liftF $ ThenFree m ()
-
--- then_ set digestor
 thens :: Free (ThenFree m t q) a -> BDDTesting m t q
 thens (Free (ThenFree m f)) = Then m $ thens f
 thens (Pure _)              = End
 
-
--- | Bdd to TestTree tasty test
-testBehaviorFree ::
-    (MonadIO m , TestableMonad m, Typeable t)
-    => String -- ^ test name
-    -> BddFree m t () () -- ^ bdd test definition
-    -> TestTree  -- ^ resulting tasty test
-testBehaviorFree s = singleTest s . interpret . bddFree
-{-
--- | the when action in disguise
-hoare :: Free (GivenFree m t q) a
-         -> m t
-         -> Free (ThenFree m t q) a
-         -> BDDTesting m t q
-         -> BDDPreparing m t q
-hoare g at t = givens g . When at . thens t-}
-
-{-
-example = let
-    gs = do
-                given_ $ print 1
-                given_ $ print 2
-    ts = do
-                then_ $ const $ return ()
-                then_ $ const $ return ()
-    in gs `when_` (return 'a')  ts-}
+bddFree :: Free (GivenFree m t q) x -> BDDPreparing m t q
+bddFree (Free (GivenFree m f)) = Given m $ bddFree <$> f
+bddFree (Free (GivenAndAfterFree mr rm f)) =
+    GivenAndAfter mr rm $ bddFree <$> f
+bddFree (Free (WhenFree mt ts _)) = When mt $ thens ts
+bddFree (Pure _                 ) = error "empty tests not allowed"
 
 
+then_ :: (t -> m q) -> Free (ThenFree m t q) ()
+then_ m = liftF $ ThenFree m ()
+
+mkFreeBDD :: (IsTest (FreeBDD m), Monad m, Typeable m, MonadCatch m)
+          => String
+          -> Free (GivenFree m t ()) x
+          -> TestTree
+mkFreeBDD s = singleTest s . FreeBDD . interpret (return ()) . bddFree
+
+newtype FreeBDD m = FreeBDD (m (m ()))

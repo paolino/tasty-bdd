@@ -11,15 +11,16 @@
 --
 --
 -------------------------------------------------------------------------------
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE Rank2Types        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Tasty.Bdd (
-      (@?=)
+    (@?=)
     , (@?/=)
     , (^?=)
     , (^?/=)
@@ -43,6 +44,7 @@ module Test.Tasty.Bdd (
     , captureStdout
     ) where
 
+import Control.Exception               (SomeException)
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
                                         MonadThrow(..))
 import Control.Monad.IO.Class          (MonadIO, liftIO)
@@ -52,6 +54,7 @@ import Data.Typeable                   (Proxy(..), Typeable)
 import System.CaptureStdout
 import System.IO.Unsafe                (unsafePerformIO)
 import Test.BDD.Language
+import Test.BDD.LanguageFree
 import Test.Tasty                      (defaultMainWithIngredients,
                                         withResource)
 import Test.Tasty.Ingredients          (Ingredient)
@@ -63,6 +66,19 @@ import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
                                         testPassed)
 import Test.Tasty.Runners
 import Text.Printf                     (printf)
+
+
+instance (TestableMonad m)
+        => IsTest (FreeBDD m) where
+    run _ (FreeBDD test) _ = runCase $ do
+        (test >>= id >> return (testPassed "good"))
+                 `catch`
+                (\(JumpOut e td) -> case fromException e of
+                    Just (EqualityDoesntHold x) -> td >> return (testFailed x)
+                    Nothing ->  td >> throwM e)
+    testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
+
+
 
 
 -- | testable monads can map to IO a Tasty Result
@@ -112,7 +128,7 @@ newtype EqualityDoesntHold
 instance Exception EqualityDoesntHold
 
 
-infixl 4 @?=
+infixl 4@?=
 -- | equality test which show pretty differences on fail
 (@?=) :: (ToExpr a, Eq a, Typeable a, MonadThrow m) => a -> a -> m ()
 a1 @?= a2 =

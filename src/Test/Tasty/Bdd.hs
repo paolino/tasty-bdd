@@ -70,7 +70,7 @@ import Text.Printf                     (printf)
 instance (TestableMonad m)
         => IsTest (FreeBDD m) where
     run _ (FreeBDD test) _ = runCase $ do
-        (test >>= id >> return (testPassed "good"))
+        (test >>= id >> return (testPassed ""))
                  `catch`
                 (\(JumpOut e td) -> case fromException e of
                     Just (EqualityDoesntHold x) -> td >> return (testFailed x)

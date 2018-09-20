@@ -44,7 +44,6 @@ module Test.Tasty.Bdd (
     , captureStdout
     ) where
 
-import Control.Exception               (SomeException)
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
                                         MonadThrow(..))
 import Control.Monad.IO.Class          (MonadIO, liftIO)
@@ -93,15 +92,20 @@ instance TestableMonad IO where
 instance (Typeable t, TestableMonad m)
         => IsTest (BDDTest m t ()) where
     run os (BDDTest ts rup w) f = runCase $ do
-        teardowns <- sequence_ . reverse <$> mapM (\(TestContext g a) -> a <$> g) rup
+        teardowns <-
+            sequence_ . reverse <$> mapM (\(TestContext g a) -> a <$> g) rup
         resultOfWhen <- w
-        let loop [] = return Nothing
-            loop (then':xs) =  do
-                    liftIO $ f (Progress "" (fromIntegral (length xs) / fromIntegral (length ts)))
-                    (then' resultOfWhen >> loop xs)
-                        `catch`
-                        (\(EqualityDoesntHold e) ->
-                             return (Just e))
+        let
+            loop []           = return Nothing
+            loop (then' : xs) = do
+                liftIO
+                    $ f
+                          (Progress
+                              ""
+                              (fromIntegral (length xs) / fromIntegral (length ts))
+                          )
+                (then' resultOfWhen >> loop xs)
+                    `catch` (\(EqualityDoesntHold e) -> return (Just e))
         resultOfThen <- loop ts
         case resultOfThen of
             Just reason -> do

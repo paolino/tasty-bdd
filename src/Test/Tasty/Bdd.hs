@@ -42,6 +42,7 @@ module Test.Tasty.Bdd (
     , after
     , onEach
     , captureStdout
+    , testBehaviorF
     ) where
 
 import Control.Monad.Catch             (Exception(..), MonadCatch(..),
@@ -66,16 +67,26 @@ import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
 import Test.Tasty.Runners
 import Text.Printf                     (printf)
 
+data FreeBDDCase m = FreeBDDCase (m Result -> IO Result) (m (Failed m))
 
-instance (TestableMonad m)
-        => IsTest (FreeBDD m) where
-    run _ (FreeBDD test) _ = runCase $ do
-        (test >>= id >> return (testPassed ""))
-                 `catch`
-                (\(JumpOut e td) -> case fromException e of
-                    Just (EqualityDoesntHold x) -> td >> return (testFailed x)
-                    Nothing ->  td >> throwM e)
+testBehaviorF :: (Typeable m, MonadCatch m)
+              => (m Result -> IO Result)
+              -> String
+              -> FreeBDD m t x
+              -> TestTree
+testBehaviorF f s = singleTest s . FreeBDDCase f . testFreeBDD
+
+instance  (MonadCatch m, Typeable m) => IsTest (FreeBDDCase m) where
+    run _ (FreeBDDCase rc test) _ = rc $ test >>= g
+        where
+            g (Failed e td) = do
+                td
+                maybe (throwM e)
+                    (return . testFailed . testFailMessage)
+                    $ fromException e
+            g (Succeded td) = td >> return (testPassed "")
     testOptions = Tagged [Option (Proxy :: Proxy FailFast)]
+
 
 
 
@@ -124,7 +135,7 @@ prettyDifferences a1 a2 =
 
 -- internal exception to trigger visual inspection on output
 newtype EqualityDoesntHold
-    = EqualityDoesntHold String
+    = EqualityDoesntHold {testFailMessage :: String}
     deriving (Show, Typeable)
 
 

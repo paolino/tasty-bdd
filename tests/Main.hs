@@ -48,7 +48,7 @@ main = defaultMain $ testGroup
     , testCase "3 givens and givenandafter order is respected, free language"
         $ do
               let
-                  t write = defaultMain $ mkFreeBDD "test free" $ do
+                  t write = defaultMain $ testBehaviorF id "test free" $ do
                       q <- given $ do
                           write "First effect"
                           return (1 :: Int)
@@ -83,7 +83,7 @@ main = defaultMain $ testGroup
             "3 givens and givenandafter order is respected, free language, with exceptions"
         $ do
               let
-                  t write = defaultMain $ mkFreeBDD "test free" $ do
+                  t write = defaultMain $ testBehaviorF id "test free" $ do
                       q <- given $ do
                           write "First effect"
                           return (1 :: Int)

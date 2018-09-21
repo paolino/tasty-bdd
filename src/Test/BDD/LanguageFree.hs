@@ -32,9 +32,9 @@ module Test.BDD.LanguageFree
         , when_
         , GivenFree
         , ThenFree
-        , mkFreeBDD
-        , FreeBDD (..)
-        , JumpOut (..)
+        , FreeBDD
+        , testFreeBDD
+        , Failed (..)
 --        , testBehaviorFree
 --
 --
@@ -44,8 +44,8 @@ module Test.BDD.LanguageFree
 import Control.Monad.Free
 -- import Control.Exception
 import Control.Monad.Catch
-import Data.Typeable
-import Test.Tasty.Providers
+import Control.Monad.Cont
+import Control.Monad.Reader
 
 
 -- | Separating the 2 phases by type
@@ -78,40 +78,27 @@ data Language m t a where
 
 
 
-data JumpOut m = JumpOut SomeException (m ())
+data Failed m = Failed SomeException (m ()) | Succeded (m ())
 
-instance Show (JumpOut m) where
-    show (JumpOut e _) ="JumpOut: " <> show e
-instance (Typeable m) => Exception (JumpOut m)
 
-rethrow :: (MonadCatch m1, Typeable m2) => m2 () -> m1 a -> m1 a
-rethrow td f = f `catch` (\e -> throwM $ JumpOut e td)
 
--- | An interpreter collecting the actions
-interpret :: (Monad m, MonadCatch m, Typeable m)
-          => m ()
-          -> Language m t 'Preparing
-          -> m (m ())
-interpret td (Given g p) = do
-    x <- rethrow td  g
-    interpret td $ p x
-interpret td (GivenAndAfter g after p) = do
-    (x, r) <- rethrow td  g
-    interpret (after r >> td) $ p x
-interpret td (When fa p) = do
-    x <- rethrow td fa
-    interpretT td x p
+type CJR m = ReaderT (m ()) m (Failed m)
 
-interpretT :: (Monad m, MonadCatch m, Typeable m)
-           => m ()
-           -> t
-           -> Language m t 'Testing
-           -> m (m ())
-interpretT td _ End        = return td
-interpretT td x (Then f p) = do
-    rethrow td $ f x
-    interpretT td x p
+stepIn :: MonadCatch m => m a -> (a -> CJR m ) -> CJR m
+stepIn g q = catch (lift g >>= q) $ asks . Failed
 
+interpret :: forall m t . MonadCatch m => Language m t 'Preparing -> m (Failed m)
+interpret  y = runReaderT (interpret' y) (return  ()) where
+    interpret' :: Language m t 'Preparing -> CJR m
+    interpret' (Given g p) = stepIn g $ interpret' . p
+    interpret' (GivenAndAfter g z p) =
+                     stepIn g $ \(x,r) -> local (z r >>) $ interpret' $ p x
+    interpret' (When fa p) =
+                     stepIn fa $ \x -> interpretT'  x p
+    interpretT' :: t -> Language m t 'Testing -> CJR m
+    interpretT' _ End = asks Succeded
+    interpretT' x (Then f p) =
+                     stepIn (f x) $ \() -> interpretT'  x p
 
 
 data GivenFree m t a where
@@ -127,6 +114,8 @@ instance Functor (GivenFree m t) where
     fmap f (GivenFree m x)             = GivenFree m $ f <$> x
     fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f <$> x
     fmap f (WhenFree mt ft x)          = WhenFree mt ft $ f x
+
+type FreeBDD m t x = Free (GivenFree m t) x
 
 given :: m a -> Free (GivenFree m t) a
 given m = liftF $ GivenFree m id
@@ -155,10 +144,8 @@ bddFree (Pure _                 ) = error "empty tests not allowed"
 then_ :: (t -> m ()) -> Free (ThenFree m t) ()
 then_ m = liftF $ ThenFree m ()
 
-mkFreeBDD :: (IsTest (FreeBDD m), Monad m, Typeable m, MonadCatch m)
-          => String
-          -> Free (GivenFree m t) x
-          -> TestTree
-mkFreeBDD s = singleTest s . FreeBDD . interpret (return ()) . bddFree
+testFreeBDD :: (MonadCatch m)
+          => Free (GivenFree m t) x
+          -> m (Failed m)
+testFreeBDD = interpret . bddFree
 
-newtype FreeBDD m = FreeBDD (m (m ()))

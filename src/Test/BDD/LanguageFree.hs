@@ -29,12 +29,13 @@ module Test.BDD.LanguageFree
         , givenAndAfter_
         , givenAndAfter
         , then_
+        , then__
         , when_
         , GivenFree
         , ThenFree
         , FreeBDD
         , testFreeBDD
-        , Failed (..)
+        , BDDResult (..)
 --        , testBehaviorFree
 --
 --
@@ -78,16 +79,16 @@ data Language m t a where
 
 
 
-data Failed m = Failed SomeException (m ()) | Succeded (m ())
+data BDDResult m = Failed SomeException (m ()) | Succeded (m ())
 
 
 
-type CJR m = ReaderT (m ()) m (Failed m)
+type CJR m = ReaderT (m ()) m (BDDResult m)
 
 stepIn :: MonadCatch m => m a -> (a -> CJR m ) -> CJR m
 stepIn g q = catch (lift g >>= q) $ asks . Failed
 
-interpret :: forall m t . MonadCatch m => Language m t 'Preparing -> m (Failed m)
+interpret :: forall m t . MonadCatch m => Language m t 'Preparing -> m (BDDResult m)
 interpret  y = runReaderT (interpret' y) (return  ()) where
     interpret' :: Language m t 'Preparing -> CJR m
     interpret' (Given g p) = stepIn g $ interpret' . p
@@ -144,8 +145,11 @@ bddFree (Pure _                 ) = error "empty tests not allowed"
 then_ :: (t -> m ()) -> Free (ThenFree m t) ()
 then_ m = liftF $ ThenFree m ()
 
+then__ :: m () -> Free (ThenFree m t) ()
+then__  = then_ . const
+
 testFreeBDD :: (MonadCatch m)
           => Free (GivenFree m t) x
-          -> m (Failed m)
+          -> m (BDDResult m)
 testFreeBDD = interpret . bddFree
 

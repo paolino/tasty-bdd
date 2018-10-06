@@ -67,7 +67,7 @@ import Test.Tasty.Providers            (IsTest(..), Progress(..), Result,
 import Test.Tasty.Runners
 import Text.Printf                     (printf)
 
-data FreeBDDCase m = FreeBDDCase (m Result -> IO Result) (m (Failed m))
+data FreeBDDCase m = FreeBDDCase (m Result -> IO Result) (m (BDDResult m))
 
 testBehaviorF :: (Typeable m, MonadCatch m)
               => (m Result -> IO Result)

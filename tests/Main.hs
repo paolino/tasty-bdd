@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
@@ -33,7 +32,7 @@ main = defaultMain $ testGroup
                                 >> return "Resource 2"
                                 )
                                 (write . ("Release " ++))
-                          $ When (write "Action returning" >> return ())
+                          $ When (write "Action returning")
                           $ Then (\_ -> return ()) End
               testTest
                   t

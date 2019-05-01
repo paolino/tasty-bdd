@@ -68,6 +68,8 @@ main = defaultMain $ testGroup
                       when_ (write "Action returning" >> return (q' + q)) $ do
                           then_ (@?= 3)
                           then_ (assertBool "less then" . (< 4))
+                      when_ (write "Action returning" >> return "different type") $ do
+                          then_ (@?= ("different type" :: String))
               testTest
                   t
                   [ "First effect"

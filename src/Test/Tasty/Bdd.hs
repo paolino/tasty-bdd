@@ -72,7 +72,7 @@ data FreeBDDCase m = FreeBDDCase (m Result -> IO Result) (m (BDDResult m))
 testBehaviorF :: (Typeable m, MonadCatch m)
               => (m Result -> IO Result)
               -> String
-              -> FreeBDD m t x
+              -> FreeBDD m  x
               -> TestTree
 testBehaviorF f s = singleTest s . FreeBDDCase f . testFreeBDD
 

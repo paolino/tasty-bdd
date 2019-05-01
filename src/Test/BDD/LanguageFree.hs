@@ -50,31 +50,31 @@ import Control.Monad.Reader
 
 
 -- | Separating the 2 phases by type
-data Phase = Preparing | Testing
+data Phase t = Preparing | Testing t
 
 
 
 -- | Bare hoare language
-data Language m t a where
+data Language m a where
     -- | action to prepare the test
     Given           :: m a
-                    -> (a -> Language m t 'Preparing)
-                    -> Language m t 'Preparing
+                    -> (a -> Language m 'Preparing)
+                    -> Language m  'Preparing
     -- | action to prepare the test, and related teardown action
     GivenAndAfter   :: m (a,r)
                     -> (r -> m ())
-                    -> (a -> Language m t 'Preparing)
-                    -> Language m t 'Preparing
+                    -> (a -> Language m  'Preparing)
+                    -> Language m 'Preparing
     -- | core logic of the test (last preparing action)
     When            :: m t
-                    -> Language m t 'Testing
-                    -> Language m t 'Preparing
+                    -> Language m  ('Testing t)
+                    -> Language m  'Preparing
     -- | action producing a test
     Then            :: (t -> m ())
-                    -> Language m t 'Testing
-                    -> Language m t 'Testing
+                    -> Language m ('Testing t)
+                    -> Language m ('Testing t)
     -- | final placeholder
-    End             :: Language m t 'Testing
+    End             :: Language m ('Testing t)
 
 
 
@@ -88,53 +88,53 @@ type CJR m = ReaderT (m ()) m (BDDResult m)
 stepIn :: MonadCatch m => m a -> (a -> CJR m ) -> CJR m
 stepIn g q = catch (lift g >>= q) $ asks . Failed
 
-interpret :: forall m t . MonadCatch m => Language m t 'Preparing -> m (BDDResult m)
+interpret :: forall m . MonadCatch m => Language m  'Preparing -> m (BDDResult m)
 interpret  y = runReaderT (interpret' y) (return  ()) where
-    interpret' :: Language m t 'Preparing -> CJR m
+    interpret' :: Language m 'Preparing -> CJR m
     interpret' (Given g p) = stepIn g $ interpret' . p
     interpret' (GivenAndAfter g z p) =
                      stepIn g $ \(x,r) -> local (z r >>) $ interpret' $ p x
     interpret' (When fa p) =
                      stepIn fa $ \x -> interpretT'  x p
-    interpretT' :: t -> Language m t 'Testing -> CJR m
+    interpretT' :: t -> Language m ('Testing t) -> CJR m
     interpretT' _ End = asks Succeded
     interpretT' x (Then f p) =
                      stepIn (f x) $ \() -> interpretT'  x p
 
 
-data GivenFree m t a where
-    GivenFree :: m b -> (b -> a) -> GivenFree m t a
-    GivenAndAfterFree :: m (b,r) -> (r -> m ()) -> (b -> a) -> GivenFree m t a
-    WhenFree :: m t -> Free (ThenFree m t) c -> a -> GivenFree m t a
+data GivenFree m  a where
+    GivenFree :: m b -> (b -> a) -> GivenFree m  a
+    GivenAndAfterFree :: m (b,r) -> (r -> m ()) -> (b -> a) -> GivenFree m a
+    WhenFree :: m t -> Free (ThenFree m t) c -> a -> GivenFree m  a
 
 data ThenFree m t a
     = ThenFree (t -> m ()) a
     deriving Functor
 
-instance Functor (GivenFree m t) where
+instance Functor (GivenFree m) where
     fmap f (GivenFree m x)             = GivenFree m $ f <$> x
     fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f <$> x
     fmap f (WhenFree mt ft x)          = WhenFree mt ft $ f x
 
-type FreeBDD m t x = Free (GivenFree m t) x
+type FreeBDD m x = Free (GivenFree m) x
 
-given :: m a -> Free (GivenFree m t) a
+given :: m a -> Free (GivenFree m) a
 given m = liftF $ GivenFree m id
 
-givenAndAfter :: m (b,r) -> (r -> m ()) -> Free (GivenFree m t) b
+givenAndAfter :: m (b,r) -> (r -> m ()) -> Free (GivenFree m) b
 givenAndAfter g td = liftF $ GivenAndAfterFree g td id
 
-givenAndAfter_ :: Functor m =>  m r -> (r -> m ()) -> Free (GivenFree m t) ()
+givenAndAfter_ :: Functor m =>  m r -> (r -> m ()) -> Free (GivenFree m) ()
 givenAndAfter_ g td = liftF $ GivenAndAfterFree (((),) <$>  g) td id
 
-when_ :: m t -> Free (ThenFree m t) b -> Free (GivenFree m t) ()
+when_ :: m t -> Free (ThenFree m t) b -> Free (GivenFree m) ()
 when_ mt ts = liftF $ WhenFree mt ts ()
 
-thens :: Free (ThenFree m t) a -> Language m t 'Testing
+thens :: Free (ThenFree m t) a -> Language m ('Testing t)
 thens (Free (ThenFree m f)) = Then m $ thens f
 thens (Pure _)              = End
 
-bddFree :: Free (GivenFree m t) x -> Language m t 'Preparing
+bddFree :: Free (GivenFree m) x -> Language m  'Preparing
 bddFree (Free (GivenFree m f)) = Given m $ bddFree <$> f
 bddFree (Free (GivenAndAfterFree mr rm f)) =
     GivenAndAfter mr rm $ bddFree <$> f
@@ -149,7 +149,7 @@ then__ :: m () -> Free (ThenFree m t) ()
 then__  = then_ . const
 
 testFreeBDD :: (MonadCatch m)
-          => Free (GivenFree m t) x
+          => Free (GivenFree m) x
           -> m (BDDResult m)
 testFreeBDD = interpret . bddFree
 

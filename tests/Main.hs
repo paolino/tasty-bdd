@@ -9,6 +9,7 @@ import qualified Test.HUnit              as H
 import           Test.Tasty
 import           Test.Tasty.Bdd
 import           Test.Tasty.HUnit        hiding ((@?=))
+import Test.Tasty.ExpectedFailure
 
 main :: IO ()
 main = defaultMain $ testGroup
@@ -68,8 +69,8 @@ main = defaultMain $ testGroup
                       when_ (write "Action returning" >> return (q' + q)) $ do
                           then_ (@?= 7)
                           then_ (assertBool "less then" . (< 4))
-                      when_ (write "Action returning2" >> return "different type") $ do
-                          then_  (@?= ("different typ" :: String))
+                      {-when_ (write "Action returning2" >> return "different type") $ do
+                          then_  (@?= ("different typ" :: String))-}
               testTest
                   t
                   [ "First effect"
@@ -77,7 +78,7 @@ main = defaultMain $ testGroup
                   , "Aquiring resource"
                   , "Aquiring resource"
                   , "Action returning"
-                  , "Action returning2"
+                  -- , "Action returning2"
                   , "Release Resource 2"
                   , "Release Resource 1"
                   ]
@@ -132,6 +133,9 @@ main = defaultMain $ testGroup
                 , testCase "t4" $ write 4
                 ]
         testTest t ([1, 0, 2, 0, 3, 0, 4, 0] :: [Int])
+    , expectFail $ testBehaviorF runCase "didn't break tasty" $ do
+        when_ (pure 42 :: IO Int) $ then_ $ \x -> x @?= 43
+
     ]
 
 

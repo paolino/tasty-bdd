@@ -64,6 +64,7 @@ test-suite test
                     , tasty-hunit
                     , tasty-bdd
                     , tasty-fail-fast
+                    , tasty-expected-failure
                     , transformers
                     , temporary
                     , qm-interpolated-string

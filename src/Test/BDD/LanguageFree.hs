@@ -90,7 +90,11 @@ interpret  y = runReaderT (interpret' y) (return  ()) where
                      stepIn g $ \(x,r) -> local (z r >>) $ interpret' $ p x
     interpret' (When fa p) =
                      stepIn fa $ \x -> interpretT'  x p
-    interpret' (And f g) = catchCJR (interpret' f) >> catchCJR (interpret' g)
+    interpret' (And f g) = do
+        r <- interpret' f
+        case r of
+             Succeded _ ->  interpret' g
+             w  -> pure w 
     interpret'  End = asks Succeded
     interpretT' :: t -> Language m ('Testing t) -> CJR m
     interpretT' _ End = asks Succeded

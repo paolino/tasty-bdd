@@ -76,8 +76,11 @@ data BDDResult m = Failed SomeException (m ()) | Succeded (m ())
 
 type CJR m = ReaderT (m ()) m (BDDResult m)
 
+catchCJR :: MonadCatch m => CJR m  -> CJR m
+catchCJR f = catch f $ asks . Failed
+
 stepIn :: MonadCatch m => m a -> (a -> CJR m ) -> CJR m
-stepIn g q = catch (lift g >>= q) $ asks . Failed
+stepIn g q = catchCJR (lift g >>= q) 
 
 interpret :: forall m . MonadCatch m => Language m  'Preparing -> m (BDDResult m)
 interpret  y = runReaderT (interpret' y) (return  ()) where
@@ -87,7 +90,7 @@ interpret  y = runReaderT (interpret' y) (return  ()) where
                      stepIn g $ \(x,r) -> local (z r >>) $ interpret' $ p x
     interpret' (When fa p) =
                      stepIn fa $ \x -> interpretT'  x p
-    interpret' (And f g) = interpret' f >> interpret' g
+    interpret' (And f g) = catchCJR (interpret' f) >> catchCJR (interpret' g)
     interpret'  End = asks Succeded
     interpretT' :: t -> Language m ('Testing t) -> CJR m
     interpretT' _ End = asks Succeded

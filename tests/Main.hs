@@ -66,10 +66,10 @@ main = defaultMain $ testGroup
                           $ write
                           . ("Release " ++)
                       when_ (write "Action returning" >> return (q' + q)) $ do
-                          then_ (@?= 3)
+                          then_ (@?= 7)
                           then_ (assertBool "less then" . (< 4))
-                      when_ (write "Action returning" >> return "different type") $ do
-                          then_ (@?= ("different type" :: String))
+                      when_ (write "Action returning2" >> return "different type") $ do
+                          then_  (@?= ("different typ" :: String))
               testTest
                   t
                   [ "First effect"
@@ -77,6 +77,7 @@ main = defaultMain $ testGroup
                   , "Aquiring resource"
                   , "Aquiring resource"
                   , "Action returning"
+                  , "Action returning2"
                   , "Release Resource 2"
                   , "Release Resource 1"
                   ]

@@ -57,25 +57,16 @@ data Phase t = Preparing | Testing t
 -- | Bare hoare language
 data Language m a where
     -- | action to prepare the test
-    Given           :: m a
-                    -> (a -> Language m 'Preparing)
-                    -> Language m  'Preparing
+    Given :: m a -> (a -> Language m 'Preparing) -> Language m 'Preparing
     -- | action to prepare the test, and related teardown action
-    GivenAndAfter   :: m (a,r)
-                    -> (r -> m ())
-                    -> (a -> Language m  'Preparing)
-                    -> Language m 'Preparing
+    GivenAndAfter :: m (a, r) -> (r -> m ()) -> (a -> Language m 'Preparing) -> Language m 'Preparing
     -- | core logic of the test (last preparing action)
-    When            :: m t
-                    -> Language m  ('Testing t)
-                    -> Language m  'Preparing
+    When :: m t -> Language m ('Testing t) -> Language m 'Preparing
     -- | action producing a test
-    Then            :: (t -> m ())
-                    -> Language m ('Testing t)
-                    -> Language m ('Testing t)
+    Then :: (t -> m ()) -> Language m ('Testing t) -> Language m ('Testing t)
     -- | final placeholder
-    End             :: Language m ('Testing t)
-
+    End :: Language m x
+    And :: Language m 'Preparing -> Language m 'Preparing -> Language m 'Preparing
 
 
 
@@ -96,6 +87,8 @@ interpret  y = runReaderT (interpret' y) (return  ()) where
                      stepIn g $ \(x,r) -> local (z r >>) $ interpret' $ p x
     interpret' (When fa p) =
                      stepIn fa $ \x -> interpretT'  x p
+    interpret' (And f g) = interpret' f >> interpret' g
+    interpret'  End = asks Succeded
     interpretT' :: t -> Language m ('Testing t) -> CJR m
     interpretT' _ End = asks Succeded
     interpretT' x (Then f p) =
@@ -115,6 +108,7 @@ instance Functor (GivenFree m) where
     fmap f (GivenFree m x)             = GivenFree m $ f <$> x
     fmap f (GivenAndAfterFree mr rm x) = GivenAndAfterFree mr rm $ f <$> x
     fmap f (WhenFree mt ft x)          = WhenFree mt ft $ f x
+
 
 type FreeBDD m x = Free (GivenFree m) x
 
@@ -138,8 +132,8 @@ bddFree :: Free (GivenFree m) x -> Language m  'Preparing
 bddFree (Free (GivenFree m f)) = Given m $ bddFree <$> f
 bddFree (Free (GivenAndAfterFree mr rm f)) =
     GivenAndAfter mr rm $ bddFree <$> f
-bddFree (Free (WhenFree mt ts _)) = When mt $ thens ts
-bddFree (Pure _                 ) = error "empty tests not allowed"
+bddFree (Free (WhenFree mt ts f)) = And (When mt $ thens ts) (bddFree f)
+bddFree (Pure _                 ) = End 
 
 
 then_ :: (t -> m ()) -> Free (ThenFree m t) ()
